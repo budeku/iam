@@ -9,6 +9,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/uuid v1.6.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/crypto v0.58.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -49,7 +50,6 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.9.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.32.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
