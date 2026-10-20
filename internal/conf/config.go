@@ -25,6 +25,16 @@ func defaultConfig() *Config {
 			Port:       ":26001",
 			ShutdownTO: 30 * time.Second,
 		},
+		Logger: Logger{
+			Filename:   filepath.Join(dataDir, "logs/iam.log"),
+			MaxSizeMB:  100,
+			MaxBackups: 7,
+			MaxAgeDays: 30,
+			Compress:   true,
+			// debug < info < warn < error < fatal
+			// info 时会记录到 info & warn & error & fatal
+			Level: "info",
+		},
 	}
 }
 
