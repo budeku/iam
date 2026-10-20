@@ -2,6 +2,7 @@ package router
 
 import (
 	"budeku/iam/internal/conf"
+	"budeku/iam/internal/transport/http/middleware"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,9 +20,12 @@ func New() *gin.Engine {
 	}
 
 	r := gin.New()
+	r.Use(middleware.Recovery())
 
 	if conf.Debug {
-		r.Use(gin.Logger(), gin.Recovery())
+		r.Use(gin.Logger())
+	} else {
+		r.Use(middleware.RequestLogger())
 	}
 
 	r.GET("/healthz", healthCheck)
