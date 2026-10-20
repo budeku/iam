@@ -30,6 +30,8 @@ func (Keypair) Annotations() []schema.Annotation {
 // Fields of the Keypair.
 func (Keypair) Fields() []ent.Field {
 	return []ent.Field{
+		field.Int("app_id"),
+
 		field.String("kid").
 			NotEmpty().
 			Unique().

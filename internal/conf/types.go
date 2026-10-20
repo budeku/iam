@@ -55,8 +55,19 @@ func (d *Database) DSN() string {
 	)
 }
 
+type Password struct {
+	Time           uint32        `yaml:"time"`
+	Memory         uint32        `yaml:"memory"`
+	Threads        uint8         `yaml:"threads"`
+	KeyLength      uint32        `yaml:"key_length"`
+	SaltLen        uint32        `yaml:"salt_len"`
+	MaxConcurrency int           `yaml:"max_concurrency"`
+	WaitTimeout    time.Duration `yaml:"wait_timeout"`
+}
+
 type Config struct {
 	HTTP     HTTP     `yaml:"http"`
 	Logger   Logger   `yaml:"logger"`
 	Database Database `yaml:"database"`
+	Password Password `yaml:"password"`
 }

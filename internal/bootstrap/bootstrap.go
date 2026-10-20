@@ -5,6 +5,7 @@ import (
 	"budeku/iam/internal/infra/database"
 	"budeku/iam/internal/logger"
 	httpserver "budeku/iam/internal/transport/http"
+	"budeku/iam/pkg/password"
 	"context"
 	"log"
 	"os/signal"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func setup() {
+func Setup() {
 	if err := conf.Init(); err != nil {
 		log.Fatalf("初始化配置失败: %v", err)
 	}
@@ -21,6 +22,16 @@ func setup() {
 	if err := logger.Init(cfg.Logger); err != nil {
 		log.Fatalf("初始化日志失败: %v", err)
 	}
+
+	password.Init(&password.Config{
+		Time:           cfg.Password.Time,
+		Memory:         cfg.Password.Memory,
+		Threads:        cfg.Password.Threads,
+		KeyLength:      cfg.Password.KeyLength,
+		SaltLen:        cfg.Password.SaltLen,
+		MaxConcurrency: cfg.Password.MaxConcurrency,
+		WaitTimeout:    cfg.Password.WaitTimeout,
+	})
 
 	if err := database.Init(cfg.Database); err != nil {
 		log.Fatalf("初始化数据库失败: %v", err)
@@ -35,7 +46,7 @@ func setup() {
 	logger.Info("debug=%t", conf.Debug)
 }
 
-func release() {
+func Release() {
 	if err := database.Close(); err != nil {
 		logger.Error("关闭数据库失败: %s", err)
 	}
@@ -45,9 +56,6 @@ func release() {
 }
 
 func Run() {
-	setup()
-	defer release()
-
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,

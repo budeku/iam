@@ -47,6 +47,15 @@ func defaultConfig() *Config {
 			MaxLifetime:  1 * time.Hour,
 			MaxIdleTime:  5 * time.Minute,
 		},
+		Password: Password{
+			Time:           3,
+			Memory:         32 * 1024, // 32MB
+			Threads:        2,
+			KeyLength:      32,
+			SaltLen:        16,
+			MaxConcurrency: 8,
+			WaitTimeout:    5 * time.Second,
+		},
 	}
 }
 
