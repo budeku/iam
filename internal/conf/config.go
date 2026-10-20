@@ -10,7 +10,7 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-const dataDir = "data"
+const DataDir = "data"
 
 var (
 	once    sync.Once
@@ -26,7 +26,7 @@ func defaultConfig() *Config {
 			ShutdownTimeout: 30 * time.Second,
 		},
 		Logger: Logger{
-			Filename:   filepath.Join(dataDir, "logs/iam.log"),
+			Filename:   filepath.Join(DataDir, "logs/iam.log"),
 			MaxSizeMB:  100,
 			MaxBackups: 7,
 			MaxAgeDays: 30,
@@ -76,7 +76,7 @@ func defaultConfig() *Config {
 }
 
 func load() (*Config, error) {
-	cfgP := filepath.Join(dataDir, "config.yaml")
+	cfgP := filepath.Join(DataDir, "config.yaml")
 
 	_, err := os.Stat(cfgP)
 	if err != nil {
@@ -118,7 +118,7 @@ func load() (*Config, error) {
 
 func Init() error {
 	once.Do(func() {
-		if err := os.MkdirAll(dataDir, 0755); err != nil {
+		if err := os.MkdirAll(DataDir, 0755); err != nil {
 			initErr = err
 			return
 		}
