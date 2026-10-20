@@ -22,8 +22,8 @@ var (
 func defaultConfig() *Config {
 	return &Config{
 		HTTP: HTTP{
-			Port:       ":26001",
-			ShutdownTO: 30 * time.Second,
+			Port:            ":26001",
+			ShutdownTimeout: 30 * time.Second,
 		},
 		Logger: Logger{
 			Filename:   filepath.Join(dataDir, "logs/iam.log"),
@@ -55,6 +55,22 @@ func defaultConfig() *Config {
 			SaltLen:        16,
 			MaxConcurrency: 8,
 			WaitTimeout:    5 * time.Second,
+		},
+		Redis: Redis{
+			Addr:            "127.0.0.1:6379",
+			Password:        "",
+			DB:              0,
+			Prefix:          "iam",
+			PoolSize:        100,
+			MinIdleConns:    10,
+			MaxIdleConns:    50,
+			MaxRetries:      3,
+			DialTimeout:     5 * time.Second,
+			ReadTimeout:     3 * time.Second,
+			WriteTimeout:    3 * time.Second,
+			PoolTimeout:     4 * time.Second,
+			ConnMaxIdleTime: 30 * time.Minute,
+			ConnMaxLifetime: time.Hour,
 		},
 	}
 }

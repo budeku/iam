@@ -7,8 +7,8 @@ import (
 )
 
 type HTTP struct {
-	Port       string        `yaml:"port"`
-	ShutdownTO time.Duration `yaml:"shutdown_to"`
+	Port            string        `yaml:"port"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
 type Logger struct {
@@ -65,9 +65,27 @@ type Password struct {
 	WaitTimeout    time.Duration `yaml:"wait_timeout"`
 }
 
+type Redis struct {
+	Addr            string        `yaml:"addr"`
+	Password        string        `yaml:"password"`
+	DB              int           `yaml:"db"`
+	Prefix          string        `yaml:"prefix"`
+	PoolSize        int           `yaml:"pool_size"`
+	MinIdleConns    int           `yaml:"min_idle_conns"`
+	MaxIdleConns    int           `yaml:"max_idle_conns"`
+	MaxRetries      int           `yaml:"max_retries"`
+	DialTimeout     time.Duration `yaml:"dial_timeout"`
+	ReadTimeout     time.Duration `yaml:"read_timeout"`
+	WriteTimeout    time.Duration `yaml:"write_timeout"`
+	PoolTimeout     time.Duration `yaml:"pool_timeout"`
+	ConnMaxIdleTime time.Duration `yaml:"conn_max_idle_time"`
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
+}
+
 type Config struct {
 	HTTP     HTTP     `yaml:"http"`
 	Logger   Logger   `yaml:"logger"`
 	Database Database `yaml:"database"`
 	Password Password `yaml:"password"`
+	Redis    Redis    `yaml:"redis"`
 }

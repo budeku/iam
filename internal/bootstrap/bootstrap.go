@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/infra/database"
+	"budeku/iam/internal/infra/redis"
 	"budeku/iam/internal/logger"
 	httpserver "budeku/iam/internal/transport/http"
 	"budeku/iam/pkg/password"
@@ -43,12 +44,20 @@ func Setup() {
 		log.Fatalf("执行数据库迁移失败: %v", err)
 	}
 
+	if err := redis.Init(cfg.Redis); err != nil {
+		log.Fatalf("初始化 Redis 失败: %v", err)
+	}
+
 	logger.Info("debug=%t", conf.Debug)
 }
 
 func Release() {
 	if err := database.Close(); err != nil {
 		logger.Error("关闭数据库失败: %s", err)
+	}
+
+	if err := redis.Close(); err != nil {
+		logger.Error("关闭 Redis 失败: %s", err)
 	}
 
 	logger.Info("正在释放资源")

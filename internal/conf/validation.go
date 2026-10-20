@@ -28,6 +28,11 @@ func validate(cfg *Config) (*Config, error) {
 		errs = append(errs, err)
 	}
 
+	// Redis
+	if err := validateRedis(cfg.Redis); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
@@ -40,7 +45,7 @@ func validateHTTP(h HTTP) error {
 	if h.Port == "" {
 		errs = append(errs, errors.New("http.port 不能为空"))
 	}
-	if h.ShutdownTO <= 0 {
+	if h.ShutdownTimeout <= 0 {
 		errs = append(errs, errors.New("http.shutdown_to 必须大于 0"))
 	}
 
@@ -134,7 +139,65 @@ func validatePassword(p Password) error {
 		errs = append(errs, errors.New("password.max_concurrency 必须大于 0"))
 	}
 	if p.WaitTimeout <= 0 {
-		errs = append(errs, errors.New("password.wait_timeout 必须大于 0"))
+		errs = append(errs, errors.New("password.wait_to 必须大于 0"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func validateRedis(r Redis) error {
+	var errs []error
+
+	if r.Addr == "" {
+		errs = append(errs, errors.New("redis.addr 地址不能为空"))
+	}
+	if r.DB < 0 {
+		errs = append(errs, errors.New("redis.db 不能为负数"))
+	}
+	if r.PoolSize <= 0 {
+		errs = append(errs, errors.New("redis.pool_size 连接池大小必须大于 0"))
+	}
+	if r.MinIdleConns < 0 {
+		errs = append(errs, errors.New("redis.min_idle_conns 最小空闲连接数不能为负数"))
+	}
+	if r.MinIdleConns > r.PoolSize {
+		errs = append(errs, errors.New("最小空闲连接数不能超过连接池大小"))
+	}
+	if r.MaxIdleConns < 0 {
+		errs = append(errs, errors.New("redis.max_idle_conns 最大空闲连接数不能为负数"))
+	}
+	if r.MaxIdleConns > 0 && r.MaxIdleConns > r.PoolSize {
+		errs = append(errs, errors.New("最大空闲连接数不能超过连接池大小"))
+	}
+	if r.MaxIdleConns > 0 && r.MinIdleConns > r.MaxIdleConns {
+		errs = append(errs, errors.New("最小空闲连接数不能超过最大空闲连接数"))
+	}
+	if r.MaxRetries < 0 {
+		errs = append(errs, errors.New("redis.max_retries 最大重试次数不能为负数"))
+	}
+	if r.DialTimeout <= 0 {
+		errs = append(errs, errors.New("redis.dial_to 连接超时时间必须大于 0"))
+	}
+	if r.ReadTimeout <= 0 {
+		errs = append(errs, errors.New("redis.read_to 读取超时时间必须大于 0"))
+	}
+	if r.WriteTimeout <= 0 {
+		errs = append(errs, errors.New("redis.write_to 写入超时时间必须大于 0"))
+	}
+	if r.PoolTimeout <= 0 {
+		errs = append(errs, errors.New("redis.pool_to 池获取超时时间必须大于 0"))
+	}
+	if r.ConnMaxIdleTime < 0 {
+		errs = append(errs, errors.New("redis.conn_max_idle_time 连接最大空闲时间不能为负数"))
+	}
+	if r.ConnMaxLifetime < 0 {
+		errs = append(errs, errors.New("redis.conn_max_lifetime 连接最大生命周期不能为负数"))
+	}
+	if r.ConnMaxLifetime > 0 && r.ConnMaxIdleTime > r.ConnMaxLifetime {
+		errs = append(errs, errors.New("redis 连接最大空闲时间不应超过最大生命周期"))
 	}
 
 	if len(errs) > 0 {

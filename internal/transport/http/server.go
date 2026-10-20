@@ -13,13 +13,13 @@ import (
 type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
-	shutdownTO time.Duration
+	shutdownTimeout time.Duration
 }
 
 func New() (*Server, error) {
 	cfg := conf.Get()
 	addr := cfg.HTTP.Port
-	shutdownTO := cfg.HTTP.ShutdownTO
+	shutdownTimeout := cfg.HTTP.ShutdownTimeout
 
 	engine := router.New()
 
@@ -35,7 +35,7 @@ func New() (*Server, error) {
 	return &Server{
 		httpServer: srv,
 		listener:   ln,
-		shutdownTO: shutdownTO,
+		shutdownTimeout: shutdownTimeout,
 	}, nil
 }
 
@@ -47,7 +47,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	shutdownCtx, cancel := context.WithTimeout(ctx, s.shutdownTO)
+	shutdownCtx, cancel := context.WithTimeout(ctx, s.shutdownTimeout)
 	defer cancel()
 
 	if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
