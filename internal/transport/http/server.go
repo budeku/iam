@@ -1,6 +1,7 @@
 package http
 
 import (
+	"budeku/iam/internal/conf"
 	"budeku/iam/internal/transport/http/router"
 	"context"
 	"fmt"
@@ -16,12 +17,15 @@ type Server struct {
 }
 
 func New() (*Server, error) {
+	cfg := conf.Get()
+	addr := cfg.HTTP.Port
+	shutdownTO := cfg.HTTP.ShutdownTO
+
 	engine := router.New()
 
-	addr := ":26001"
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("监听 %s：%w", addr, err)
+		return nil, fmt.Errorf("监听 %s 失败：%w", addr, err)
 	}
 
 	srv := &http.Server{
@@ -31,7 +35,7 @@ func New() (*Server, error) {
 	return &Server{
 		httpServer: srv,
 		listener:   ln,
-		shutdownTO: 30 * time.Second,
+		shutdownTO: shutdownTO,
 	}, nil
 }
 

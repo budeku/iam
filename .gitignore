@@ -35,5 +35,8 @@ go.work.sum
 # ent
 internal/infra/ent/db
 
-# cmd
-/cmd/iam-server/iam-server*
+# 可执行文件
+/iam-server
+
+# 数据
+/data
