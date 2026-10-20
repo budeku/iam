@@ -34,3 +34,6 @@ go.work.sum
 
 # ent
 internal/infra/ent/db
+
+# cmd
+/cmd/iam-server/iam-server*
