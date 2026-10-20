@@ -18,6 +18,11 @@ func validate(cfg *Config) (*Config, error) {
 		errs = append(errs, err)
 	}
 
+	// Database
+	if err := validateDatabase(cfg.Database); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
@@ -59,6 +64,42 @@ func validateLogger(l Logger) error {
 		// 有效的日志级别
 	default:
 		errs = append(errs, fmt.Errorf("无效的日志级别 %q (允许的值: debug, info, warn, error)", l.Level))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func validateDatabase(d Database) error {
+	var errs []error
+	if d.Host == "" {
+		errs = append(errs, errors.New("数据库地址不能为空"))
+	}
+	if d.Port == "" {
+		errs = append(errs, errors.New("数据库端口不能为空"))
+	}
+	if d.User == "" {
+		errs = append(errs, errors.New("数据库用户名不能为空"))
+	}
+	if d.DBName == "" {
+		errs = append(errs, errors.New("数据库名称不能为空"))
+	}
+	if d.MaxIdleConns < 0 {
+		errs = append(errs, errors.New("数据库最大空闲连接数不能为负数"))
+	}
+	if d.MaxOpenConns <= 0 {
+		errs = append(errs, errors.New("数据库最大打开连接数必须大于 0"))
+	}
+	if d.MaxIdleConns > d.MaxOpenConns {
+		errs = append(errs, errors.New("数据库最大空闲连接数不能超过最大打开连接数"))
+	}
+	if d.MaxLifetime < 0 {
+		errs = append(errs, errors.New("数据库连接最大生命周期不能为负数"))
+	}
+	if d.MaxIdleTime < 0 {
+		errs = append(errs, errors.New("数据库连接最大空闲时间不能为负数"))
 	}
 
 	if len(errs) > 0 {

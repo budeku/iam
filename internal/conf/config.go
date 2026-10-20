@@ -35,6 +35,18 @@ func defaultConfig() *Config {
 			// info 时会记录到 info & warn & error & fatal
 			Level: "info",
 		},
+		Database: Database{
+			Host:         "127.0.0.1",
+			Port:         "3306",
+			User:         "root",
+			Password:     "",
+			DBName:       "iam",
+			Timezone:     "Local",
+			MaxIdleConns: 10,
+			MaxOpenConns: 100,
+			MaxLifetime:  1 * time.Hour,
+			MaxIdleTime:  5 * time.Minute,
+		},
 	}
 }
 
