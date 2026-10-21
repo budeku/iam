@@ -17,6 +17,8 @@ import (
 type App struct {
 	User *handler.UserHandler
 
+	UserBiz *biz.UserBiz
+
 	JWTManager *jwt.Manager
 	AuthToken  biz.AuthToken
 }

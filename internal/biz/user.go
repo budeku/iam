@@ -27,6 +27,7 @@ type UserGetResp struct {
 
 type UserStore interface {
 	GetByUsername(ctx context.Context, username string) (*UserGetResp, error)
+	GetByUUID(ctx context.Context, userUUID uuid.UUID) (*UserGetResp, error)
 
 	UpdateLastLogin(ctx context.Context, id int, at time.Time) error
 }
@@ -204,4 +205,39 @@ func (b *UserBiz) Logout(ctx context.Context, sessionIdentity uuid.UUID) error {
 
 		return nil
 	})
+}
+
+type UserMeResp struct {
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	UUID         uuid.UUID `json:"uuid"`
+	IsSuperAdmin bool      `json:"is_super_admin"`
+}
+
+func (b *UserBiz) Me(ctx context.Context, userUUID uuid.UUID) (*UserMeResp, error) {
+	u, err := b.store.GetByUUID(ctx, userUUID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrNotFound
+		}
+	}
+
+	return &UserMeResp{
+		Username:     u.Username,
+		Email:        u.Email,
+		UUID:         u.UUID,
+		IsSuperAdmin: u.IsSuperAdmin,
+	}, nil
+}
+
+func (b *UserBiz) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*UserGetResp, error) {
+	info, err := b.store.GetByUUID(ctx, userUUID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		logger.Error("%v", err)
+		return nil, err
+	}
+	return info, nil
 }

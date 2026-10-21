@@ -40,7 +40,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	result, err := h.userBiz.Login(ctx, body.Username, body.Password, body.RequestMeta.IP, body.RequestMeta.UserAgent)
 	if err != nil {
-		response.ErrMessage(c, code.BadRequest, err.Error())
+		response.BadRequest(c)
 		return
 	}
 
@@ -74,5 +74,11 @@ func (h *UserHandler) Me(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"user_uuid": userUUID})
+	res, err := h.userBiz.Me(c.Request.Context(), userUUID)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.Success(c, res)
 }

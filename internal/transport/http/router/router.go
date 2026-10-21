@@ -3,6 +3,7 @@ package router
 import (
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/transport/http/middleware"
+	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/wire"
 	"net/http"
 
@@ -48,4 +49,12 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 
 	protected.POST("/auth/logout", app.User.Logout)
 	protected.GET("/auth/me", app.User.Me)
+
+	admin := protected.Group("")
+	admin.Use(middleware.RequireSuperAdmin(app.UserBiz))
+	{
+		admin.GET("/test", func(c *gin.Context) {
+			response.OK(c)
+		})
+	}
 }

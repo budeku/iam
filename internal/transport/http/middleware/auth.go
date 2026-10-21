@@ -7,6 +7,7 @@ import (
 	"budeku/iam/internal/transport/http/cookieutil"
 	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/transport/http/response/code"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -38,6 +39,38 @@ func Auth(jwtManager *jwt.Manager, authToken biz.AuthToken) gin.HandlerFunc {
 		c.Set(consts.CtxUserUUID, claims.UserUUID)
 		c.Set(consts.CtxSessionID, claims.SessionID)
 		c.Set(consts.CtxUsername, claims.Name)
+
+		c.Next()
+	}
+}
+
+func RequireSuperAdmin(userBiz *biz.UserBiz) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userUUID, ok := UserUUIDFromContext(c)
+		if !ok {
+			response.Err(c, code.Unauthorized)
+			c.Abort()
+			return
+		}
+
+		ctx := c.Request.Context()
+
+		info, err := userBiz.GetByUUID(ctx, userUUID)
+		if err != nil {
+			if errors.Is(err, biz.ErrNotFound) {
+				response.Unauthorized(c)
+			} else {
+				response.InternalError(c)
+			}
+			c.Abort()
+			return
+		}
+
+		if !info.IsSuperAdmin {
+			response.Err(c, code.Forbidden)
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
