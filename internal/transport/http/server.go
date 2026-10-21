@@ -3,6 +3,7 @@ package http
 import (
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/transport/http/router"
+	"budeku/iam/internal/wire"
 	"context"
 	"fmt"
 	"net"
@@ -18,12 +19,12 @@ type Server struct {
 	shutdownTimeout time.Duration
 }
 
-func New() (*Server, error) {
+func New(app *wire.App) (*Server, error) {
 	cfg := conf.Get().HTTP
 	addr := cfg.Port
 	shutdownTimeout := cfg.ShutdownTimeout
 
-	engine := router.New()
+	engine := router.New(app)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {

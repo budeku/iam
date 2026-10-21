@@ -3,6 +3,7 @@ package router
 import (
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/transport/http/middleware"
+	"budeku/iam/internal/wire"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,7 @@ func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
-func New() *gin.Engine {
+func New(app *wire.App) *gin.Engine {
 	if conf.Debug {
 		gin.SetMode(gin.DebugMode)
 	} else {
@@ -30,5 +31,15 @@ func New() *gin.Engine {
 
 	r.GET("/healthz", healthCheck)
 
+	registerRoutes(r, app)
+
 	return r
+}
+
+func registerRoutes(r *gin.Engine, app *wire.App) {
+	api := r.Group("/api")
+	auth := api.Group("/auth")
+	{
+		auth.POST("/login", app.User.Login)
+	}
 }

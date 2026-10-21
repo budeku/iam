@@ -4,14 +4,17 @@ type KeypairAlgorithm uint8
 
 const (
 	KeypairAlgoRS256 KeypairAlgorithm = 1 + iota
+	KeypairAlgoES256
 )
 
 var keypairAlgorithmNames = map[KeypairAlgorithm]string{
 	KeypairAlgoRS256: "RS256",
+	KeypairAlgoES256: "ES256",
 }
 
 var keypairAlgorithmValues = map[string]KeypairAlgorithm{
 	"RS256": KeypairAlgoRS256,
+	"ES256": KeypairAlgoES256,
 }
 
 func (a KeypairAlgorithm) Valid() bool    { return enumValid(keypairAlgorithmNames, a) }

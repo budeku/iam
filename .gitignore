@@ -40,3 +40,6 @@ internal/infra/ent/db
 
 # 数据
 /data
+
+# wire
+internal/wire/*_gen.go

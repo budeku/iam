@@ -6,7 +6,10 @@ import (
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/internal/logger"
 	httpserver "budeku/iam/internal/transport/http"
+	"budeku/iam/internal/transport/http/cookieutil"
+	"budeku/iam/internal/wire"
 	"budeku/iam/pkg/password"
+	"budeku/iam/pkg/util"
 	"context"
 	"log"
 	"os/signal"
@@ -20,6 +23,13 @@ func Setup() {
 	}
 
 	cfg := conf.Get()
+
+	if len(cfg.HTTP.TrustedProxies) > 0 {
+		util.SetTrustedProxies(cfg.HTTP.TrustedProxies)
+	}
+
+	cookieutil.InitCookieUtil(cfg.Cookie)
+
 	if err := logger.Init(cfg.Logger); err != nil {
 		log.Fatalf("初始化日志失败: %v", err)
 	}
@@ -72,7 +82,8 @@ func Run() {
 	)
 	defer stop()
 
-	srv, err := httpserver.New()
+	app := wire.InitApp(database.DB())
+	srv, err := httpserver.New(app)
 	if err != nil {
 		logger.Fatal("创建 HTTP 服务失败: %v", err)
 	}
