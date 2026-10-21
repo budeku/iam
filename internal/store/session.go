@@ -3,8 +3,11 @@ package store
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/session"
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var _ biz.SessionStore = (*SessionStore)(nil)
@@ -19,7 +22,7 @@ func NewSessionStore(client *db.Client) *SessionStore {
 
 func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*biz.SessionCreateResp, error) {
 	info, err := s.Client(ctx).Session.Create().
-		SetIdentity(body.Identify).
+		SetIdentity(body.Identity).
 		SetAppID(body.AppID).
 		SetUserID(body.UserID).
 		SetIP(body.IP).
@@ -48,4 +51,25 @@ func (s *SessionStore) UpdateLastActive(ctx context.Context, id int, t time.Time
 	}
 
 	return nil
+}
+
+func (s *SessionStore) RevokedByIdentity(ctx context.Context, identity uuid.UUID) (*biz.SessionInfoResp, error) {
+	info, err := s.Client(ctx).Session.Query().
+		Where(session.IdentityEQ(identity)).
+		Only(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, biz.ErrNotFound
+		}
+		return nil, err
+	}
+
+	err = s.Client(ctx).Session.UpdateOneID(info.ID).
+		SetRevokedAt(time.Now()).
+		Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return toSessionInfoResp(info), nil
 }

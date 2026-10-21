@@ -124,8 +124,15 @@ func (r *Redis) SetNX(ctx context.Context, key string, value any, exp time.Durat
 	return r.client.SetNX(ctx, r.key(key), value, exp).Result()
 }
 
-func (r *Redis) Del(ctx context.Context, key string) error {
-	return r.client.Del(ctx, r.key(key)).Err()
+func (r *Redis) Del(ctx context.Context, keys ...string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	realKeys := make([]string, len(keys))
+	for i, k := range keys {
+		realKeys[i] = r.key(k)
+	}
+	return r.client.Del(ctx, realKeys...).Err()
 }
 
 func (r *Redis) Exists(ctx context.Context, key string) (bool, error) {

@@ -6,6 +6,10 @@ import (
 )
 
 func toUserGetResp(info *db.User) *biz.UserGetResp {
+	if info == nil {
+		return nil
+	}
+
 	return &biz.UserGetResp{
 		ID:           info.ID,
 		Username:     info.Username,
@@ -19,18 +23,41 @@ func toUserGetResp(info *db.User) *biz.UserGetResp {
 }
 
 func toSessionCreateResp(info *db.Session) *biz.SessionCreateResp {
+	if info == nil {
+		return nil
+	}
+
 	return &biz.SessionCreateResp{
 		ID: info.ID,
 	}
 }
 
+func toSessionInfoResp(info *db.Session) *biz.SessionInfoResp {
+	if info == nil {
+		return nil
+	}
+
+	return &biz.SessionInfoResp{
+		ID:       info.ID,
+		Identity: info.Identity,
+	}
+}
+
 func toRefreshTokenCreateResp(info *db.RefreshToken) *biz.RefreshTokenCreateResp {
+	if info == nil {
+		return nil
+	}
+
 	return &biz.RefreshTokenCreateResp{
 		ID: info.ID,
 	}
 }
 
 func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
+	if info == nil {
+		return nil
+	}
+
 	return &biz.KeypairGetResp{
 		ID:          info.ID,
 		AppID:       info.AppID,

@@ -4,7 +4,9 @@ import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/consts"
+	"budeku/iam/internal/logger"
 	"budeku/iam/internal/transport/http/cookieutil"
+	"budeku/iam/internal/transport/http/middleware"
 	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/transport/http/response/code"
 
@@ -48,4 +50,29 @@ func (h *UserHandler) Login(c *gin.Context) {
 	cookie.Set(c.Writer, consts.CookieAccessToken, result.AccessToken, int(jwtCfg.AccessTokenTTL.Seconds()))
 	cookie.Set(c.Writer, consts.CookieRefreshToken, result.RefreshToken, int(jwtCfg.RefreshTokenTTL.Seconds()))
 	response.OK(c)
+}
+
+func (h *UserHandler) Logout(c *gin.Context) {
+	cookie := cookieutil.Cookie()
+	ctx := c.Request.Context()
+
+	if sessionID, ok := middleware.SessionIDFromContext(c); ok {
+		if err := h.userBiz.Logout(ctx, sessionID); err != nil {
+			logger.Error("会话 %s 退出失败：%v", sessionID, err)
+		}
+	}
+
+	cookie.Delete(c.Writer, consts.CookieAccessToken)
+	cookie.Delete(c.Writer, consts.CookieRefreshToken)
+	response.OK(c)
+}
+
+func (h *UserHandler) Me(c *gin.Context) {
+	userUUID, ok := middleware.UserUUIDFromContext(c)
+	if !ok {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	response.Success(c, gin.H{"user_uuid": userUUID})
 }

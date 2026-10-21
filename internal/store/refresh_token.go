@@ -3,7 +3,9 @@ package store
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/refreshtoken"
 	"context"
+	"time"
 )
 
 var _ biz.RefreshTokenStore = (*RefreshTokenStore)(nil)
@@ -21,7 +23,7 @@ func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCom
 		SetAppID(body.AppID).
 		SetSessionID(body.SessionID).
 		SetUserID(body.UserID).
-		SetIdentity(body.Identify).
+		SetIdentity(body.Identity).
 		SetJti(body.Jti).
 		SetExpiresAt(body.ExpiresAt).
 		Save(ctx)
@@ -31,4 +33,12 @@ func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCom
 	}
 
 	return toRefreshTokenCreateResp(info), nil
+}
+
+func (s *RefreshTokenStore) RevokedBySessionID(ctx context.Context, sessionID int) error {
+	_, err := s.Client(ctx).RefreshToken.Update().
+		Where(refreshtoken.SessionIDEQ(sessionID)).
+		SetRevokedAt(time.Now()).
+		Save(ctx)
+	return err
 }

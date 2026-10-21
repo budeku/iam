@@ -16,9 +16,15 @@ import (
 
 type App struct {
 	User *handler.UserHandler
+
+	JWTManager *jwt.Manager
+	AuthToken  biz.AuthToken
 }
 
 var providerSet = wire.NewSet(
+	store.NewAuthToken,
+	wire.Bind(new(biz.AuthToken), new(*store.AuthToken)),
+
 	store.NewTransactor,
 	wire.Bind(new(biz.Transactor), new(*store.Transactor)),
 

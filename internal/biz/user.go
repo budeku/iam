@@ -41,6 +41,7 @@ type UserBiz struct {
 	refreshTokenStore RefreshTokenStore
 	tx                Transactor
 	signer            JwtSinger
+	authToken         AuthToken
 }
 
 func NewUserBiz(
@@ -49,6 +50,7 @@ func NewUserBiz(
 	refreshTokenStore RefreshTokenStore,
 	tx Transactor,
 	signer JwtSinger,
+	authToken AuthToken,
 ) *UserBiz {
 	return &UserBiz{
 		store:             store,
@@ -56,6 +58,7 @@ func NewUserBiz(
 		refreshTokenStore: refreshTokenStore,
 		tx:                tx,
 		signer:            signer,
+		authToken:         authToken,
 	}
 }
 
@@ -91,8 +94,8 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 	}
 
 	now := time.Now()
-	refreshTokenTTL := conf.Get().JWT.RefreshTokenTTL
-	expiresAt := now.Add(refreshTokenTTL)
+	jwtCfg := conf.Get().JWT
+	expiresAt := now.Add(jwtCfg.RefreshTokenTTL)
 
 	var refreshTokenPlain string
 	var sessionID int
@@ -104,7 +107,7 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 		sessionResp, err := b.sessionStore.Create(ctx, SessionCommand{
 			AppID:           conf.IAMAppID,
 			UserID:          info.ID,
-			Identify:        sessionIdentity,
+			Identity:        sessionIdentity,
 			IP:              ip,
 			UserAgent:       userAgent,
 			AuthMedhod:      enum.SessionAuthMethodPassword,
@@ -142,6 +145,14 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 		return nil, errors.New("登录失败")
 	}
 
+	// 令牌保存到缓存中
+	if err := b.authToken.SetAccess(ctx, sessionIdentity, jwtCfg.AccessTokenTTL); err != nil {
+		return nil, errors.New("登录异常")
+	}
+	if err := b.authToken.SetRefresh(ctx, sessionIdentity, jwtCfg.RefreshTokenTTL); err != nil {
+		return nil, errors.New("登录异常")
+	}
+
 	return &LoginResp{
 		AccessToken:  accessToken,
 		RefreshToken: refreshTokenPlain,
@@ -159,7 +170,7 @@ func (b *UserBiz) createRefreshTokenInTx(ctx context.Context, userID, appID, ses
 		AppID:     appID,
 		UserID:    userID,
 		SessionID: sessionID,
-		Identify:  identity,
+		Identity:  identity,
 		Jti:       uuid.New(),
 		ExpiresAt: expiresAt,
 	})
@@ -168,4 +179,29 @@ func (b *UserBiz) createRefreshTokenInTx(ctx context.Context, userID, appID, ses
 	}
 
 	return plain, nil
+}
+
+func (b *UserBiz) Logout(ctx context.Context, sessionIdentity uuid.UUID) error {
+	if err := b.authToken.DelAll(ctx, sessionIdentity); err != nil {
+		logger.Error("退出清理 Redis 令牌失败：%s", err)
+		return errors.New("退出异常")
+	}
+
+	return b.tx.WithTx(ctx, func(ctx context.Context) error {
+		sessionInfo, err := b.sessionStore.RevokedByIdentity(ctx, sessionIdentity)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				return nil // 会话已经不存在了
+			}
+			return err
+		}
+
+		if sessionInfo != nil {
+			if err := b.refreshTokenStore.RevokedBySessionID(ctx, sessionInfo.ID); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

@@ -11,7 +11,7 @@ type RefreshTokenCommand struct {
 	AppID     int
 	SessionID int
 	UserID    int
-	Identify  []byte
+	Identity  []byte
 	Jti       uuid.UUID
 	ExpiresAt time.Time
 }
@@ -22,6 +22,8 @@ type RefreshTokenCreateResp struct {
 
 type RefreshTokenStore interface {
 	Create(ctx context.Context, body RefreshTokenCommand) (*RefreshTokenCreateResp, error)
+
+	RevokedBySessionID(ctx context.Context, sessionID int) error
 }
 
 type RefreshTokenBiz struct {
