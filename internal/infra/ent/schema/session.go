@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"budeku/iam/internal/enum"
 	"time"
 
 	"entgo.io/ent"
@@ -46,6 +47,16 @@ func (Session) Fields() []ent.Field {
 		field.Text("user_agent").
 			MaxLen(512).
 			Optional(),
+
+		field.Uint8("auth_method").
+			GoType(enum.SessionAuthMethod(0)).
+			Default(uint8(enum.SessionAuthMethodPassword)),
+
+		field.Time("authenticated_at").
+			Default(time.Now).
+			SchemaType(map[string]string{
+				"mysql": "datetime(3)",
+			}),
 
 		field.Time("last_active_at").
 			Default(time.Now).
