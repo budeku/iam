@@ -38,12 +38,12 @@ func New(keys KeyProvider, opts ...Option) *Manager {
 	return m
 }
 
-func (m *Manager) SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, ttl time.Duration) (string, error) {
-	return m.sign(ctx, userUUID, sessionID, name, ttl)
+func (m *Manager) SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration) (string, error) {
+	return m.sign(ctx, userUUID, sessionID, name, appID, ttl)
 }
 
-func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name string, ttl time.Duration) (string, error) {
-	kid, priv, err := m.keys.SigningKey(ctx)
+func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration) (string, error) {
+	kid, priv, err := m.keys.SigningKey(ctx, appID)
 	if err != nil {
 		return "", err // 获取签名私钥失败
 	}

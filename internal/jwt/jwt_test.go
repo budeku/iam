@@ -28,8 +28,9 @@ func TestManager_SignAndParse(t *testing.T) {
 	userUUID := uuid.New()
 	sessionID := uuid.New()
 	name := "张三"
+	appID := 1
 
-	tokenStr, err := manager.SignAccessToken(context.Background(), userUUID, sessionID, name, time.Minute*5)
+	tokenStr, err := manager.SignAccessToken(context.Background(), userUUID, sessionID, name, appID, time.Minute*5)
 	if err != nil {
 		t.Fatalf("签发 Token 失败: %v", err)
 	}
