@@ -3,6 +3,8 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 )
 
@@ -39,6 +41,11 @@ func validate(cfg *Config) (*Config, error) {
 		errs = append(errs, err)
 	}
 
+	// JWT
+	if err := validateJWT(cfg.JWT); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
@@ -50,9 +57,51 @@ func validateHTTP(h HTTP) error {
 	var errs []error
 	if h.Port == "" {
 		errs = append(errs, errors.New("http.port 不能为空"))
+	} else {
+		if !strings.HasPrefix(h.Port, ":") && !strings.Contains(h.Port, ":") {
+			errs = append(errs, fmt.Errorf("http.port 格式错误，必须以冒号开头或包含 IP 地址，当前值: %s", h.Port))
+		} else {
+			portStr := strings.TrimPrefix(h.Port, ":")
+			// 包含 IP
+			if strings.Contains(h.Port, ":") && strings.Count(h.Port, ":") == 1 && !strings.HasPrefix(h.Port, ":") {
+				_, pStr, err := net.SplitHostPort(h.Port)
+				if err == nil {
+					portStr = pStr
+				}
+			}
+
+			if p, err := strconv.Atoi(portStr); err != nil || p < 1 || p > 65535 {
+				errs = append(errs, fmt.Errorf("http.port 端口范围不合法 (1-65535): %s", h.Port))
+			}
+		}
+	}
+	if h.MaxConnections < 0 {
+		errs = append(errs, errors.New("http.max_connections 不能为负数"))
+	}
+	if h.ReadTimeout < 0 {
+		errs = append(errs, errors.New("http.read_timeout 不能为负数"))
+	}
+	if h.ReadHeaderTimeout < 0 {
+		errs = append(errs, errors.New("http.read_header_timeout 不能为负数"))
+	}
+	if h.WriteTimeout < 0 {
+		errs = append(errs, errors.New("http.write_timeout 不能为负数"))
+	}
+	if h.IdleTimeout < 0 {
+		errs = append(errs, errors.New("http.idle_timeout 不能为负数"))
+	}
+	if h.MaxHeaderBytes < 0 {
+		errs = append(errs, errors.New("http.max_header_bytes 不能为负数"))
 	}
 	if h.ShutdownTimeout <= 0 {
-		errs = append(errs, errors.New("http.shutdown_to 必须大于 0"))
+		errs = append(errs, errors.New("http.shutdown_timeout 必须大于 0"))
+	}
+	for i, proxy := range h.TrustedProxies {
+		if _, _, err := net.ParseCIDR(proxy); err != nil {
+			if parsedIP := net.ParseIP(proxy); parsedIP == nil {
+				errs = append(errs, fmt.Errorf("http.trusted_proxies[%d] 不是合法的 IP 或 CIDR: %s", i, proxy))
+			}
+		}
 	}
 
 	if len(errs) > 0 {
@@ -103,7 +152,7 @@ func validateDatabase(d Database) error {
 		errs = append(errs, errors.New("database.db_name 数据库名称不能为空"))
 	}
 	if d.MaxIdleConns < 0 {
-		errs = append(errs, errors.New("database.max_idel_conns数据库最大空闲连接数不能为负数"))
+		errs = append(errs, errors.New("database.max_idle_conns 数据库最大空闲连接数不能为负数"))
 	}
 	if d.MaxOpenConns <= 0 {
 		errs = append(errs, errors.New("database.max_open_conns 数据库最大打开连接数必须大于 0"))
@@ -112,7 +161,7 @@ func validateDatabase(d Database) error {
 		errs = append(errs, errors.New("数据库最大空闲连接数不能超过最大打开连接数"))
 	}
 	if d.MaxLifetime < 0 {
-		errs = append(errs, errors.New("database.max_life_time 数据库连接最大生命周期不能为负数"))
+		errs = append(errs, errors.New("database.max_lifetime 数据库连接最大生命周期不能为负数"))
 	}
 	if d.MaxIdleTime < 0 {
 		errs = append(errs, errors.New("database.max_idle_time 数据库连接最大空闲时间不能为负数"))
@@ -145,7 +194,7 @@ func validatePassword(p Password) error {
 		errs = append(errs, errors.New("password.max_concurrency 必须大于 0"))
 	}
 	if p.WaitTimeout <= 0 {
-		errs = append(errs, errors.New("password.wait_to 必须大于 0"))
+		errs = append(errs, errors.New("password.wait_timeout 必须大于 0"))
 	}
 
 	if len(errs) > 0 {
@@ -185,16 +234,16 @@ func validateRedis(r Redis) error {
 		errs = append(errs, errors.New("redis.max_retries 最大重试次数不能为负数"))
 	}
 	if r.DialTimeout <= 0 {
-		errs = append(errs, errors.New("redis.dial_to 连接超时时间必须大于 0"))
+		errs = append(errs, errors.New("redis.dial_timeout 连接超时时间必须大于 0"))
 	}
 	if r.ReadTimeout <= 0 {
-		errs = append(errs, errors.New("redis.read_to 读取超时时间必须大于 0"))
+		errs = append(errs, errors.New("redis.read_timeout 读取超时时间必须大于 0"))
 	}
 	if r.WriteTimeout <= 0 {
-		errs = append(errs, errors.New("redis.write_to 写入超时时间必须大于 0"))
+		errs = append(errs, errors.New("redis.write_timeout 写入超时时间必须大于 0"))
 	}
 	if r.PoolTimeout <= 0 {
-		errs = append(errs, errors.New("redis.pool_to 池获取超时时间必须大于 0"))
+		errs = append(errs, errors.New("redis.pool_timeout 池获取超时时间必须大于 0"))
 	}
 	if r.ConnMaxIdleTime < 0 {
 		errs = append(errs, errors.New("redis.conn_max_idle_time 连接最大空闲时间不能为负数"))
@@ -227,6 +276,24 @@ func validateCookie(c Cookie) error {
 
 	if strings.EqualFold(c.SameSite, "none") && !c.Secure {
 		errs = append(errs, errors.New("当 cookie.samesite 为 'none' 时，cookie.secure 必须为 true"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func validateJWT(j JWT) error {
+	var errs []error
+	if j.Issuer == "" {
+		errs = append(errs, errors.New("jwt.issuer 不能为空"))
+	}
+	if j.AccessTokenTTL <= 0 {
+		errs = append(errs, errors.New("jwt.access_token_ttl 必须大于 0"))
+	}
+	if j.RefreshTokenTTL <= 0 {
+		errs = append(errs, errors.New("jwt.refresh_token_ttl 必须大于 0"))
 	}
 
 	if len(errs) > 0 {

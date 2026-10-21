@@ -8,18 +8,20 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/netutil"
 )
 
 type Server struct {
-	httpServer *http.Server
-	listener   net.Listener
+	httpServer      *http.Server
+	listener        net.Listener
 	shutdownTimeout time.Duration
 }
 
 func New() (*Server, error) {
-	cfg := conf.Get()
-	addr := cfg.HTTP.Port
-	shutdownTimeout := cfg.HTTP.ShutdownTimeout
+	cfg := conf.Get().HTTP
+	addr := cfg.Port
+	shutdownTimeout := cfg.ShutdownTimeout
 
 	engine := router.New()
 
@@ -27,14 +29,22 @@ func New() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("监听 %s 失败：%w", addr, err)
 	}
+	if cfg.MaxConnections > 0 {
+		ln = netutil.LimitListener(ln, cfg.MaxConnections)
+	}
 
 	srv := &http.Server{
-		Handler: engine,
+		Handler:           engine,
+		ReadTimeout:       cfg.ReadTimeout,
+		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+		WriteTimeout:      cfg.WriteTimeout,
+		IdleTimeout:       cfg.IdleTimeout,
+		MaxHeaderBytes:    cfg.MaxHeaderBytes,
 	}
 
 	return &Server{
-		httpServer: srv,
-		listener:   ln,
+		httpServer:      srv,
+		listener:        ln,
 		shutdownTimeout: shutdownTimeout,
 	}, nil
 }

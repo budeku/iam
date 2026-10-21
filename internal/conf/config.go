@@ -32,8 +32,23 @@ func defaultConfig() *Config {
 
 	return &Config{
 		HTTP: HTTP{
-			Port:            ":26001",
-			ShutdownTimeout: 30 * time.Second,
+			Port:              ":26001",
+			MaxConnections:    10000,
+			ReadTimeout:       15 * time.Second,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      15 * time.Second,
+			IdleTimeout:       60 * time.Second,
+			MaxHeaderBytes:    1 << 20, // 1MB
+			ShutdownTimeout:   30 * time.Second,
+			TrustedProxies: []string{
+				"127.0.0.0/8",    // IPv4 Loopback
+				"::1/128",        // IPv6 Loopback
+				"10.0.0.0/8",     // Private Network
+				"172.16.0.0/12",  // Private Network / Docker Default Bridge
+				"192.168.0.0/16", // Private Network
+				"fc00::/7",       // Unique Local Address (IPv6)
+			},
+			CORSAllowOrigins: nil,
 		},
 		Logger: Logger{
 			Filename:   filepath.Join(DataDir, "logs/iam.log"),
@@ -89,6 +104,12 @@ func defaultConfig() *Config {
 			HttpOnly: true,
 			SameSite: "lax",
 			Secret:   mustGenKey(),
+		},
+		JWT: JWT{
+			Issuer:          "iam",
+			Audience:        "",
+			AccessTokenTTL:  5 * time.Minute,
+			RefreshTokenTTL: 7 * 24 * time.Hour,
 		},
 	}
 }
