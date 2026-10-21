@@ -66,6 +66,13 @@ func (RefreshToken) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"mysql": "datetime(3)",
 			}),
+
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now).
+			SchemaType(map[string]string{
+				"mysql": "datetime(3)",
+			}),
 	}
 }
 

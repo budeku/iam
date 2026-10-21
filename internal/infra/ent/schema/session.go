@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // Session holds the schema definition for the Session entity.
@@ -29,6 +30,11 @@ func (Session) Annotations() []schema.Annotation {
 // Fields of the Session.
 func (Session) Fields() []ent.Field {
 	return []ent.Field{
+		field.UUID("identity", uuid.UUID{}).
+			Default(uuid.New).
+			Immutable().
+			Unique(),
+
 		field.Int("app_id"),
 
 		field.Int("user_id"),
@@ -42,8 +48,7 @@ func (Session) Fields() []ent.Field {
 			Optional(),
 
 		field.Time("last_active_at").
-			Optional().
-			Nillable().
+			Default(time.Now).
 			SchemaType(map[string]string{
 				"mysql": "datetime(3)",
 			}),
@@ -63,6 +68,13 @@ func (Session) Fields() []ent.Field {
 		field.Time("created_at").
 			Default(time.Now).
 			Immutable().
+			SchemaType(map[string]string{
+				"mysql": "datetime(3)",
+			}),
+
+		field.Time("updated_at").
+			Default(time.Now).
+			UpdateDefault(time.Now).
 			SchemaType(map[string]string{
 				"mysql": "datetime(3)",
 			}),
