@@ -3,6 +3,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 func validate(cfg *Config) (*Config, error) {
@@ -30,6 +31,11 @@ func validate(cfg *Config) (*Config, error) {
 
 	// Redis
 	if err := validateRedis(cfg.Redis); err != nil {
+		errs = append(errs, err)
+	}
+
+	// Cookie
+	if err := validateCookie(cfg.Cookie); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -198,6 +204,29 @@ func validateRedis(r Redis) error {
 	}
 	if r.ConnMaxLifetime > 0 && r.ConnMaxIdleTime > r.ConnMaxLifetime {
 		errs = append(errs, errors.New("redis 连接最大空闲时间不应超过最大生命周期"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func validateCookie(c Cookie) error {
+	var errs []error
+
+	if len(c.Secret) == 0 {
+		errs = append(errs, errors.New("cookie.secret 不能为空"))
+	}
+
+	switch strings.ToLower(c.SameSite) {
+	case "", "lax", "strict", "none":
+	default:
+		errs = append(errs, errors.New("cookie.samesite 必须是 'lax'、'strict' 或 'none' 之一"))
+	}
+
+	if strings.EqualFold(c.SameSite, "none") && !c.Secure {
+		errs = append(errs, errors.New("当 cookie.samesite 为 'none' 时，cookie.secure 必须为 true"))
 	}
 
 	if len(errs) > 0 {

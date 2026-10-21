@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"budeku/iam/pkg/random"
 	"errors"
 	"os"
 	"path/filepath"
@@ -20,6 +21,15 @@ var (
 )
 
 func defaultConfig() *Config {
+	mustGenKey := func() string {
+		if s, err := random.Alphanumeric(32); err == nil {
+			return s
+		}
+		// openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 32
+		// head -c 32 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 32
+		return "9dMO2doXM1p8wLep8xDnJT0xI6RITizE"
+	}
+
 	return &Config{
 		HTTP: HTTP{
 			Port:            ":26001",
@@ -71,6 +81,14 @@ func defaultConfig() *Config {
 			PoolTimeout:     4 * time.Second,
 			ConnMaxIdleTime: 30 * time.Minute,
 			ConnMaxLifetime: time.Hour,
+		},
+		Cookie: Cookie{
+			Domain:   "",
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: "lax",
+			Secret:   mustGenKey(),
 		},
 	}
 }

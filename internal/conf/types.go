@@ -82,10 +82,20 @@ type Redis struct {
 	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
 }
 
+type Cookie struct {
+	Domain   string `yaml:"domain"`
+	Path     string `yaml:"path"`
+	Secure   bool   `yaml:"secure"`
+	HttpOnly bool   `yaml:"http_only"`
+	SameSite string `yaml:"same_site"` // lax, strict, none
+	Secret   string `yaml:"secret"`
+}
+
 type Config struct {
 	HTTP     HTTP     `yaml:"http"`
 	Logger   Logger   `yaml:"logger"`
 	Database Database `yaml:"database"`
 	Password Password `yaml:"password"`
 	Redis    Redis    `yaml:"redis"`
+	Cookie   Cookie   `yaml:"cookie"`
 }
