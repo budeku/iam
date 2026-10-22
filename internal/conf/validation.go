@@ -46,6 +46,11 @@ func validate(cfg *Config) (*Config, error) {
 		errs = append(errs, err)
 	}
 
+	// Security
+	if err := validateSecurity(cfg.Security); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
 	}
@@ -300,6 +305,23 @@ func validateJWT(j JWT) error {
 	}
 	if j.SessionTTL > 0 && j.RefreshTokenTTL > j.SessionTTL {
 		errs = append(errs, errors.New("jwt.refresh_token_ttl 不能大于 jwt.session_ttl"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+func validateSecurity(s Security) error {
+	var errs []error
+	if strings.TrimSpace(s.MasterKey) == "" {
+		errs = append(errs, errors.New("security.master_key 不能为空"))
+	} else {
+		keyLen := len([]byte(s.MasterKey))
+		if keyLen != 32 {
+			errs = append(errs, fmt.Errorf("security.master_key 长度必须为 32 字节（当前长度: %d）", keyLen))
+		}
 	}
 
 	if len(errs) > 0 {

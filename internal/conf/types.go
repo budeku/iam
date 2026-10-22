@@ -107,6 +107,10 @@ type JWT struct {
 	SessionTTL      time.Duration `yaml:"session_ttl" mapstructure:"session_ttl"`
 }
 
+type Security struct {
+	MasterKey string `json:"master_key" mapstructure:"master_key"`
+}
+
 type Config struct {
 	HTTP     HTTP     `yaml:"http" mapstructure:"http"`
 	Logger   Logger   `yaml:"logger" mapstructure:"logger"`
@@ -115,4 +119,5 @@ type Config struct {
 	Redis    Redis    `yaml:"redis" mapstructure:"redis"`
 	Cookie   Cookie   `yaml:"cookie" mapstructure:"cookie"`
 	JWT      JWT      `yaml:"jwt" mapstructure:"jwt"`
+	Security Security `yaml:"security" mapstructure:"security"`
 }

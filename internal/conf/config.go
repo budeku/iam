@@ -112,6 +112,9 @@ func defaultConfig() *Config {
 			RefreshTokenTTL: 24 * time.Hour,
 			SessionTTL:      7 * 24 * time.Hour,
 		},
+		Security: Security{
+			MasterKey: mustGenKey(),
+		},
 	}
 }
 

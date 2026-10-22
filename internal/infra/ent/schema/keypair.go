@@ -2,6 +2,7 @@ package schema
 
 import (
 	"budeku/iam/internal/enum"
+	"budeku/iam/internal/infra/ent/mixin"
 	"time"
 
 	"entgo.io/ent"
@@ -42,9 +43,11 @@ func (Keypair) Fields() []ent.Field {
 			Default(uint8(enum.KeypairAlgoRS256)),
 
 		field.Text("public_key").
+			Immutable().
 			NotEmpty(),
 
 		field.Text("private_key").
+			Immutable().
 			NotEmpty().
 			Sensitive(),
 
@@ -61,6 +64,12 @@ func (Keypair) Fields() []ent.Field {
 		field.Time("retire_at").
 			Optional().
 			Nillable(),
+	}
+}
+
+func (Keypair) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixin.DatetimeMixin{},
 	}
 }
 

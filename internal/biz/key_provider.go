@@ -6,13 +6,16 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"time"
 
+	"budeku/iam/internal/conf"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/redis"
+	"budeku/iam/pkg/cryptoutil"
 )
 
 type BizKeyProvider struct {
@@ -61,8 +64,20 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 		return "", nil, err
 	}
 
+	// 从数据库读取后进行解密
+	ciphertext, err := base64.StdEncoding.DecodeString(dbKp.PrivateKey)
+	if err != nil {
+		return "", nil, fmt.Errorf("私钥 Base64 解码失败: %w", err)
+	}
+
+	plaintextPEMBytes, err := cryptoutil.Decrypt(ciphertext, []byte(conf.Get().Security.MasterKey))
+	if err != nil {
+		return "", nil, fmt.Errorf("私钥解密失败: %w", err)
+	}
+	privPEM := string(plaintextPEMBytes)
+
 	// 解析私钥
-	signer, err := parsePrivateKey(dbKp.Kid, dbKp.PrivateKey, dbKp.Algorithm)
+	signer, err := parsePrivateKey(dbKp.Kid, privPEM, dbKp.Algorithm)
 	if err != nil {
 		return "", nil, err
 	}
@@ -70,7 +85,7 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 	// 写入缓存
 	cacheData := cachedKeypair{
 		Kid:        dbKp.Kid,
-		PrivateKey: dbKp.PrivateKey,
+		PrivateKey: privPEM,
 		Algorithm:  dbKp.Algorithm,
 	}
 	_ = p.rdb.SetJSON(ctx, cacheKey, cacheData, 5*time.Minute)

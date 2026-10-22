@@ -1,13 +1,16 @@
 package data
 
 import (
+	"budeku/iam/internal/conf"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/ent/db"
 	"budeku/iam/internal/store"
+	"budeku/iam/pkg/cryptoutil"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 
 	"github.com/google/uuid"
@@ -45,8 +48,14 @@ func initKeypair(ctx context.Context, kpStore *store.KeypairStore, result *Resul
 		Bytes: privDER,
 	}))
 
+	encryptedBytes, err := cryptoutil.Encrypt([]byte(privPEM), []byte(conf.Get().Security.MasterKey))
+	if err != nil {
+		return err
+	}
+	privEncryptedHexOrBase64 := base64.StdEncoding.EncodeToString(encryptedBytes)
+
 	kid := uuid.NewString()
-	if _, err := kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, privPEM); err != nil {
+	if _, err := kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, privEncryptedHexOrBase64); err != nil {
 		return err
 	}
 
