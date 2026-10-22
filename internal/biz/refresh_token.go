@@ -39,6 +39,7 @@ type RefreshTokenStore interface {
 
 	RevokeByID(ctx context.Context, id int) error
 	RevokedBySessionID(ctx context.Context, sessionID int) error
+	RevokedBySessionIDs(ctx context.Context, sessionIDs []int) error
 }
 
 type RefreshTokenBiz struct {

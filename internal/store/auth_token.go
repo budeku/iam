@@ -55,3 +55,16 @@ func (t *AuthToken) DelRefresh(ctx context.Context, sessionID uuid.UUID) error {
 func (t *AuthToken) DelAll(ctx context.Context, sessionID uuid.UUID) error {
 	return t.rdb.Del(ctx, t.accessKey(sessionID), t.refreshKey(sessionID))
 }
+
+func (t *AuthToken) DelAllBySessionIdentities(ctx context.Context, identities []uuid.UUID) error {
+	if len(identities) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(identities)*2)
+	for _, id := range identities {
+		keys = append(keys, t.accessKey(id), t.refreshKey(id))
+	}
+
+	return t.rdb.Del(ctx, keys...)
+}

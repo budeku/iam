@@ -101,3 +101,40 @@ func (s *SessionStore) RevokedByIdentity(ctx context.Context, identity uuid.UUID
 
 	return toSessionInfoResp(info), nil
 }
+
+func (s *SessionStore) RevokeByAppID(ctx context.Context, appID int) ([]int, []uuid.UUID, error) {
+	client := s.Client(ctx)
+
+	// 所有未被吊销的会话
+	sessions, err := client.Session.Query().
+		Where(
+			session.AppIDEQ(appID),
+			session.RevokedAtIsNil(),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(sessions) == 0 {
+		return []int{}, []uuid.UUID{}, nil
+	}
+
+	sessionIDs := make([]int, len(sessions))
+	identities := make([]uuid.UUID, len(sessions))
+	for i, v := range sessions {
+		sessionIDs[i] = v.ID
+		identities[i] = v.Identity
+	}
+
+	// 更新状态为已吊销
+	_, err = client.Session.Update().
+		Where(session.IDIn(sessionIDs...)).
+		SetRevokedAt(time.Now()).
+		Save(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sessionIDs, identities, nil
+}

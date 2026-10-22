@@ -82,3 +82,21 @@ func (t *Transactor) WithTx(ctx context.Context, fn func(ctx context.Context) er
 	committed = true // 标记已提交
 	return nil
 }
+
+func paginate(total, page, perPage int) (offset, limit int) {
+	if perPage <= 0 {
+		perPage = 10
+	}
+	if page < 1 {
+		page = 1
+	}
+
+	// 计算最大页码
+	totalPages := (total + perPage - 1) / perPage
+	if page > totalPages {
+		// 指向最后一页的起始位置
+		page = totalPages
+	}
+
+	return (page - 1) * perPage, perPage
+}

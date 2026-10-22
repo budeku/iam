@@ -3,7 +3,6 @@ package router
 import (
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/transport/http/middleware"
-	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/wire"
 	"net/http"
 
@@ -54,8 +53,11 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 	admin := protected.Group("")
 	admin.Use(middleware.RequireSuperAdmin(app.UserBiz))
 	{
-		admin.GET("/test", func(c *gin.Context) {
-			response.OK(c)
-		})
+		admin.GET("/apps", app.App.List)
+		admin.GET("/apps/:id", app.App.Info)
+		admin.POST("/apps", app.App.Create)
+		admin.PUT("/apps/:id", app.App.Update)
+		admin.PUT("/apps/:id/status", app.App.UpdateStatus)
+		admin.DELETE("/apps/:id", app.App.Delete)
 	}
 }

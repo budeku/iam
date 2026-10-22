@@ -18,6 +18,21 @@ func NewRefreshTokenStore(client *db.Client) *RefreshTokenStore {
 	return &RefreshTokenStore{newBaseStore(client)}
 }
 
+func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) (*biz.RefreshTokenInfoResp, error) {
+	info, err := s.Client(ctx).RefreshToken.Query().
+		Where(refreshtoken.IdentityEQ(identity)).
+		Only(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, biz.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return toRefreshTokenInfoResp(info), nil
+}
+
 func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCommand) (*biz.RefreshTokenCreateResp, error) {
 	info, err := s.Client(ctx).RefreshToken.Create().
 		SetAppID(body.AppID).
@@ -35,29 +50,6 @@ func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCom
 	return toRefreshTokenCreateResp(info), nil
 }
 
-func (s *RefreshTokenStore) RevokedBySessionID(ctx context.Context, sessionID int) error {
-	_, err := s.Client(ctx).RefreshToken.Update().
-		Where(refreshtoken.SessionIDEQ(sessionID)).
-		SetRevokedAt(time.Now()).
-		Save(ctx)
-	return err
-}
-
-func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) (*biz.RefreshTokenInfoResp, error) {
-	info, err := s.Client(ctx).RefreshToken.Query().
-		Where(refreshtoken.IdentityEQ(identity)).
-		Only(ctx)
-
-	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, biz.ErrNotFound
-		}
-		return nil, err
-	}
-
-	return toRefreshTokenInfoResp(info), nil
-}
-
 func (s *RefreshTokenStore) RevokeByID(ctx context.Context, id int) error {
 	err := s.Client(ctx).RefreshToken.UpdateOneID(id).
 		SetRevokedAt(time.Now()).
@@ -71,4 +63,25 @@ func (s *RefreshTokenStore) RevokeByID(ctx context.Context, id int) error {
 	}
 
 	return nil
+}
+
+func (s *RefreshTokenStore) RevokedBySessionID(ctx context.Context, sessionID int) error {
+	_, err := s.Client(ctx).RefreshToken.Update().
+		Where(refreshtoken.SessionIDEQ(sessionID)).
+		SetRevokedAt(time.Now()).
+		Save(ctx)
+	return err
+}
+
+func (s *RefreshTokenStore) RevokedBySessionIDs(ctx context.Context, sessionIDs []int) error {
+	if len(sessionIDs) == 0 {
+		return nil
+	}
+
+	_, err := s.Client(ctx).RefreshToken.Update().
+		Where(refreshtoken.SessionIDIn(sessionIDs...)).
+		SetRevokedAt(time.Now()).
+		Save(ctx)
+
+	return err
 }

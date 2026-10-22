@@ -46,6 +46,7 @@ type SessionStore interface {
 	UpdateLastActive(ctx context.Context, id int, t time.Time) error
 	RevokedByID(ctx context.Context, id int) error
 	RevokedByIdentity(ctx context.Context, identity uuid.UUID) (*SessionInfoResp, error)
+	RevokeByAppID(ctx context.Context, appID int) ([]int, []uuid.UUID, error)
 }
 
 type SessionBiz struct {

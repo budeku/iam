@@ -16,6 +16,7 @@ import (
 
 type App struct {
 	User *handler.UserHandler
+	App *handler.AppHandler
 
 	UserBiz *biz.UserBiz
 
@@ -47,6 +48,7 @@ var providerSet = wire.NewSet(
 	store.NewRefreshTokenStore,
 	wire.Bind(new(biz.RefreshTokenStore), new(*store.RefreshTokenStore)),
 
+	handler.NewAppHandler,
 	biz.NewAppBiz,
 	store.NewAppStore,
 	wire.Bind(new(biz.AppStore), new(*store.AppStore)),

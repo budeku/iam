@@ -97,3 +97,36 @@ func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
 		RetireAt:    info.RetireAt,
 	}
 }
+
+func toAppList(list []*db.App) []biz.AppListItemResp {
+	if len(list) == 0 {
+		return []biz.AppListItemResp{}
+	}
+
+	res := make([]biz.AppListItemResp, 0, len(list))
+	for _, v := range list {
+		res = append(res, biz.AppListItemResp{
+			ID:        v.ID,
+			Name:      v.Name,
+			ClientID:  v.ClientID,
+			Status:    v.Status,
+			IsSystem:  v.IsSystem,
+			CreatedAt: v.CreatedAt,
+		})
+	}
+
+	return res
+}
+
+func toAppInfo(info *db.App) *biz.AppInfoResp {
+	return &biz.AppInfoResp{
+		ID:           info.ID,
+		Name:         info.Name,
+		ClientID:     info.ClientID,
+		RedirectUris: info.RedirectUris,
+		Status:       info.Status,
+		IsSystem:     info.IsSystem,
+		CreatedAt:    info.CreatedAt,
+		UpdatedAt:    info.UpdatedAt,
+	}
+}

@@ -15,4 +15,5 @@ type AuthToken interface {
 	ExistsRefresh(ctx context.Context, sessionID uuid.UUID) (bool, error)
 	DelRefresh(ctx context.Context, sessionID uuid.UUID) error
 	DelAll(ctx context.Context, sessionID uuid.UUID) error
+	DelAllBySessionIdentities(ctx context.Context, identities []uuid.UUID) error
 }
