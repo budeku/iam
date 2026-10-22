@@ -13,6 +13,8 @@ type Claims struct {
 	UserUUID  uuid.UUID
 	SessionID uuid.UUID
 	Name      string
+
+	Fingerprint string // 客户端环境指纹
 }
 
 func (c *Claims) ExpiresAt() time.Time {
@@ -41,10 +43,13 @@ func ParseClaims(token jwtlib.Token) (*Claims, error) {
 
 	name, _ := jwtlib.Get[string](token, "name")
 
+	fp, _ := jwtlib.Get[string](token, "fp")
+
 	return &Claims{
-		Token:     token,
-		UserUUID:  uid,
-		SessionID: sid,
-		Name:      name,
+		Token:       token,
+		UserUUID:    uid,
+		SessionID:   sid,
+		Name:        name,
+		Fingerprint: fp,
 	}, nil
 }

@@ -4,9 +4,11 @@ import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/consts"
 	"budeku/iam/internal/jwt"
+	"budeku/iam/internal/logger"
 	"budeku/iam/internal/transport/http/cookieutil"
 	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/transport/http/response/code"
+	"budeku/iam/pkg/util"
 	"errors"
 
 	"github.com/gin-gonic/gin"
@@ -22,8 +24,9 @@ func Auth(jwtManager *jwt.Manager, authToken biz.AuthToken) gin.HandlerFunc {
 			return
 		}
 
-		claims, err := jwtManager.Parse(c.Request.Context(), accessToken)
+		claims, err := jwtManager.Parse(c.Request.Context(), accessToken, util.ClientIP(c.Request), util.UserAgent(c.Request))
 		if err != nil {
+			logger.Warn("JWT 校验失败: %v | 客户端 IP: %s | User-Agent: %s", err, util.ClientIP(c.Request), util.UserAgent(c.Request))
 			response.Err(c, code.Unauthorized)
 			c.Abort()
 			return

@@ -1,11 +1,13 @@
 package jwt
 
 import (
+	"budeku/iam/pkg/hashutil"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +17,10 @@ import (
 	jwtlib "github.com/lestrrat-go/jwx/v4/jwt"
 )
 
-var ErrInvalidToken = errors.New("jwt 无效令牌")
+var (
+	ErrInvalidToken        = errors.New("jwt 无效令牌")
+	ErrFingerprintMismatch = errors.New("jwt 客户端环境指纹不匹配")
+)
 
 type Manager struct {
 	keys     KeyProvider
@@ -38,15 +43,19 @@ func New(keys KeyProvider, opts ...Option) *Manager {
 	return m
 }
 
-func (m *Manager) SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration) (string, error) {
-	return m.sign(ctx, userUUID, sessionID, name, appID, ttl)
+func (m *Manager) SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration, ip, userAgent string) (string, error) {
+	return m.sign(ctx, userUUID, sessionID, name, appID, ttl, ip, userAgent)
 }
 
-func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration) (string, error) {
+func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration, ip, userAgent string) (string, error) {
 	kid, priv, err := m.keys.SigningKey(ctx, appID)
 	if err != nil {
 		return "", err // 获取签名私钥失败
 	}
+
+	// 使用 kid 作为盐的一部分，保证即使密钥轮换，指纹算法的 salt 也匹配
+	secretBytes := []byte(kid + "_fp_salt")
+	fp := generateFingerprint(ip, userAgent, secretBytes)
 
 	var alg jwa.SignatureAlgorithm
 	switch priv.(type) {
@@ -70,7 +79,8 @@ func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name 
 		IssuedAt(now).
 		Expiration(now.Add(ttl)).
 		Claim("uid", userUUID.String()).
-		Claim("sid", sessionID.String())
+		Claim("sid", sessionID.String()).
+		Claim("fp", fp)
 
 	if m.audience != "" {
 		builder.Audience([]string{m.audience})
@@ -92,7 +102,7 @@ func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name 
 	return string(signed), nil
 }
 
-func (m *Manager) Parse(ctx context.Context, tokenString string) (*Claims, error) {
+func (m *Manager) Parse(ctx context.Context, tokenString string, currentIP, currentUserAgent string) (*Claims, error) {
 	msg, err := jws.Parse([]byte(tokenString))
 	if err != nil {
 		return nil, err // 解析 JWS 结构失败
@@ -132,5 +142,50 @@ func (m *Manager) Parse(ctx context.Context, tokenString string) (*Claims, error
 		return nil, err // Token 验签或校验失败（过期等）
 	}
 
-	return ParseClaims(token)
+	claims, err := ParseClaims(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// 校验环境指纹 (IP + UA)
+	// 还原当时签名时用的动态 secret（利用 kid）
+	secretBytes := []byte(kid + "_fp_salt")
+	expectedFP := generateFingerprint(currentIP, currentUserAgent, secretBytes)
+
+	if claims.Fingerprint != "" && claims.Fingerprint != expectedFP {
+		return nil, ErrFingerprintMismatch
+	}
+
+	return claims, nil
+}
+
+func generateFingerprint(ip, userAgent string, secret []byte) string {
+	// 模糊化：例如 "192.168.1.100" -> "192.168.1.0"
+	maskedIP := maskIPv4(ip)
+
+	// 拼接
+	raw := maskedIP + "|" + userAgent
+
+	// 截取哈希前 16 位减小 Token 体积
+	hexStr, err := hashutil.MAC256Hex([]byte(raw), secret)
+	if err != nil || len(hexStr) < 16 {
+		// 降级兜底方案
+		return hashutil.Sum256Hex([]byte(raw))[:16]
+	}
+	return hexStr[:16]
+}
+
+func maskIPv4(ip string) string {
+	// 去除端口号（如果带了端口）
+	if idx := strings.LastIndex(ip, ":"); idx != -1 {
+		// 需排除 IPv6 的冒号情况，简单判断
+		if !strings.Contains(ip, "]") && strings.Count(ip, ":") == 1 {
+			ip = ip[:idx]
+		}
+	}
+	parts := strings.Split(ip, ".")
+	if len(parts) == 4 {
+		return fmt.Sprintf("%s.%s.%s.0", parts[0], parts[1], parts[2])
+	}
+	return ip // 如果是 IPv6 或不规范格式，暂时原样返回
 }

@@ -34,7 +34,7 @@ type UserStore interface {
 }
 
 type JwtSinger interface {
-	SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration) (string, error)
+	SignAccessToken(ctx context.Context, userUUID, sessionID uuid.UUID, name string, appID int, ttl time.Duration, ip, userAgent string) (string, error)
 }
 
 type UserBiz struct {
@@ -143,6 +143,8 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 		info.Username,
 		conf.IAMAppID,
 		jwtCfg.AccessTokenTTL,
+		ip,
+		userAgent,
 	)
 	if err != nil {
 		logger.Error("签发 AccessToken 失败：%s", err)
@@ -312,6 +314,8 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 			userInfo.Username,
 			sessionInfo.AppID,
 			jwtCfg.AccessTokenTTL,
+			sessionInfo.IP,
+			sessionInfo.UserAgent,
 		)
 		if err != nil {
 			return err
