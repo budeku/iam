@@ -9,43 +9,124 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"time"
 
 	"budeku/iam/internal/enum"
+	"budeku/iam/internal/infra/redis"
 )
 
 type BizKeyProvider struct {
 	keypairStore KeypairStore
+	rdb          *redis.Redis
+}
+
+type cachedKeypair struct {
+	Kid        string                `json:"kid"`
+	PrivateKey string                `json:"private_key"`
+	Algorithm  enum.KeypairAlgorithm `json:"algorithm"`
 }
 
 func NewBizKeyProvider(keypairStore KeypairStore) *BizKeyProvider {
 	return &BizKeyProvider{
 		keypairStore: keypairStore,
+		rdb:          redis.DB(),
 	}
 }
 
+func (p *BizKeyProvider) activeKeypairCacheKey(appID int) string {
+	return fmt.Sprintf("keypair:active:%d", appID)
+}
+
+func (p *BizKeyProvider) publicCertCacheKey(kid string) string {
+	return fmt.Sprintf("keypair:pub:%s", kid)
+}
+
+// 私钥签名（Signing）
 func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, crypto.Signer, error) {
-	kp, err := p.keypairStore.GetActiveByAppID(ctx, appID)
+	cacheKey := p.activeKeypairCacheKey(appID)
+
+	var kp cachedKeypair
+
+	err := p.rdb.GetJSON(ctx, cacheKey, &kp)
+	if err == nil && kp.Kid != "" {
+		signer, parseErr := parsePrivateKey(kp.Kid, kp.PrivateKey, kp.Algorithm)
+		if parseErr == nil {
+			return kp.Kid, signer, nil
+		}
+	}
+
+	// 缓存未命中，回源查数据库
+	dbKp, err := p.keypairStore.GetActiveByAppID(ctx, appID)
 	if err != nil {
 		return "", nil, err
 	}
 
-	block, _ := pem.Decode([]byte(kp.PrivateKey))
+	// 解析私钥
+	signer, err := parsePrivateKey(dbKp.Kid, dbKp.PrivateKey, dbKp.Algorithm)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// 写入缓存
+	cacheData := cachedKeypair{
+		Kid:        dbKp.Kid,
+		PrivateKey: dbKp.PrivateKey,
+		Algorithm:  dbKp.Algorithm,
+	}
+	_ = p.rdb.SetJSON(ctx, cacheKey, cacheData, 5*time.Minute)
+
+	return dbKp.Kid, signer, nil
+}
+
+// 公钥验签（Verifying）
+func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.PublicKey, error) {
+	cacheKey := p.publicCertCacheKey(kid)
+
+	var pubPEM string
+	pubPEM, err := p.rdb.Get(ctx, cacheKey)
+	if err == nil && pubPEM != "" {
+		pub, parseErr := parsePublicKeyPEM(pubPEM, kid)
+		if parseErr == nil {
+			return pub, nil
+		}
+	}
+
+	// 缓存未命中，回源查数据库
+	dbKp, err := p.keypairStore.GetByKid(ctx, kid)
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析公钥
+	pub, err := parsePublicKeyPEM(dbKp.PublicKey, kid)
+	if err != nil {
+		return nil, err
+	}
+
+	// 缓存
+	_ = p.rdb.Set(ctx, cacheKey, dbKp.PublicKey, 24*time.Hour)
+
+	return pub, nil
+}
+
+func parsePrivateKey(kid, privPEM string, algo enum.KeypairAlgorithm) (crypto.Signer, error) {
+	block, _ := pem.Decode([]byte(privPEM))
 	if block == nil {
-		return "", nil, fmt.Errorf("解析私钥 PEM 失败: kid=%s", kp.Kid)
+		return nil, fmt.Errorf("解析私钥 PEM 失败: kid=%s", kid)
 	}
 
 	var signer crypto.Signer
-	switch kp.Algorithm {
+	switch algo {
 	case enum.KeypairAlgoRS256:
 		priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
 			parsed, err8 := x509.ParsePKCS8PrivateKey(block.Bytes)
 			if err8 != nil {
-				return "", nil, fmt.Errorf("解析 RSA 私钥失败: %w", err)
+				return nil, fmt.Errorf("解析 RSA 私钥失败: %w", err)
 			}
 			rsaKey, ok := parsed.(*rsa.PrivateKey)
 			if !ok {
-				return "", nil, errors.New("PKCS8 密钥不是 RSA 类型")
+				return nil, errors.New("PKCS8 密钥不是 RSA 类型")
 			}
 			signer = rsaKey
 		} else {
@@ -56,30 +137,25 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 		if err != nil {
 			parsed, err8 := x509.ParsePKCS8PrivateKey(block.Bytes)
 			if err8 != nil {
-				return "", nil, fmt.Errorf("解析 EC 私钥失败: %w", err)
+				return nil, fmt.Errorf("解析 EC 私钥失败: %w", err)
 			}
 			ecKey, ok := parsed.(*ecdsa.PrivateKey)
 			if !ok {
-				return "", nil, errors.New("PKCS8 密钥不是 ECDSA 类型")
+				return nil, errors.New("PKCS8 密钥不是 ECDSA 类型")
 			}
 			signer = ecKey
 		} else {
 			signer = priv
 		}
 	default:
-		return "", nil, fmt.Errorf("不支持的密钥算法: %d", kp.Algorithm)
+		return nil, fmt.Errorf("不支持的密钥算法: %d", algo)
 	}
 
-	return kp.Kid, signer, nil
+	return signer, nil
 }
 
-func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.PublicKey, error) {
-	kp, err := p.keypairStore.GetByKid(ctx, kid)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode([]byte(kp.PublicKey))
+func parsePublicKeyPEM(pubPEM, kid string) (crypto.PublicKey, error) {
+	block, _ := pem.Decode([]byte(pubPEM))
 	if block == nil {
 		return nil, fmt.Errorf("解析公钥 PEM 失败: kid=%s", kid)
 	}
