@@ -15,8 +15,9 @@ import (
 )
 
 type App struct {
-	User *handler.UserHandler
-	App *handler.AppHandler
+	User    *handler.UserHandler
+	App     *handler.AppHandler
+	Keypair *handler.KeypairHandler
 
 	UserBiz *biz.UserBiz
 
@@ -31,6 +32,7 @@ var providerSet = wire.NewSet(
 	store.NewTransactor,
 	wire.Bind(new(biz.Transactor), new(*store.Transactor)),
 
+	handler.NewKeyPairHandler,
 	biz.NewKeypairBiz,
 	store.NewKeypairStore,
 	wire.Bind(new(biz.KeypairStore), new(*store.KeypairStore)),

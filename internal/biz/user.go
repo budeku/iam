@@ -194,7 +194,7 @@ func (b *UserBiz) Logout(ctx context.Context, sessionIdentity uuid.UUID) error {
 	}
 
 	return b.tx.WithTx(ctx, func(ctx context.Context) error {
-		sessionInfo, err := b.sessionStore.RevokedByIdentity(ctx, sessionIdentity)
+		sessionID, err := b.sessionStore.RevokedByIdentity(ctx, sessionIdentity)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				return nil // 会话已经不存在了
@@ -202,8 +202,8 @@ func (b *UserBiz) Logout(ctx context.Context, sessionIdentity uuid.UUID) error {
 			return err
 		}
 
-		if sessionInfo != nil {
-			if err := b.refreshTokenStore.RevokedBySessionID(ctx, sessionInfo.ID); err != nil {
+		if sessionID != 0 {
+			if err := b.refreshTokenStore.RevokedBySessionID(ctx, sessionID); err != nil {
 				return err
 			}
 		}
@@ -252,7 +252,7 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 		}
 
 		// 查询关联的 Session 信息
-		sessionInfo, err := b.sessionStore.GetByID(ctx, oldRt.SessionID)
+		sessionInfo, err := b.sessionStore.Get(ctx, oldRt.SessionID)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				return errors.New("关联的会话不存在")

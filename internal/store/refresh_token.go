@@ -18,7 +18,7 @@ func NewRefreshTokenStore(client *db.Client) *RefreshTokenStore {
 	return &RefreshTokenStore{newBaseStore(client)}
 }
 
-func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) (*biz.RefreshTokenInfoResp, error) {
+func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) (*biz.RefreshTokenGetResp, error) {
 	info, err := s.Client(ctx).RefreshToken.Query().
 		Where(refreshtoken.IdentityEQ(identity)).
 		Only(ctx)
@@ -30,7 +30,7 @@ func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) 
 		return nil, err
 	}
 
-	return toRefreshTokenInfoResp(info), nil
+	return toRefreshTokenGetResp(info), nil
 }
 
 func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCommand) (*biz.RefreshTokenCreateResp, error) {

@@ -20,7 +20,7 @@ func NewSessionStore(client *db.Client) *SessionStore {
 	return &SessionStore{newBaseStore(client)}
 }
 
-func (s *SessionStore) GetByID(ctx context.Context, id int) (*biz.SessionInfoResp, error) {
+func (s *SessionStore) Get(ctx context.Context, id int) (*biz.SessionGetResp, error) {
 	info, err := s.Client(ctx).Session.Query().
 		Where(session.IDEQ(id)).
 		Only(ctx)
@@ -31,7 +31,7 @@ func (s *SessionStore) GetByID(ctx context.Context, id int) (*biz.SessionInfoRes
 		return nil, err
 	}
 
-	return toSessionInfoResp(info), nil
+	return toSessionGetResp(info), nil
 }
 
 func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*biz.SessionCreateResp, error) {
@@ -81,25 +81,26 @@ func (s *SessionStore) RevokedByID(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *SessionStore) RevokedByIdentity(ctx context.Context, identity uuid.UUID) (*biz.SessionInfoResp, error) {
+func (s *SessionStore) RevokedByIdentity(ctx context.Context, identity uuid.UUID) (int, error) {
 	info, err := s.Client(ctx).Session.Query().
 		Where(session.IdentityEQ(identity)).
+		Select(session.FieldID).
 		Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, biz.ErrNotFound
+			return 0, biz.ErrNotFound
 		}
-		return nil, err
+		return 0, err
 	}
 
 	err = s.Client(ctx).Session.UpdateOneID(info.ID).
 		SetRevokedAt(time.Now()).
 		Exec(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return toSessionInfoResp(info), nil
+	return info.ID, nil
 }
 
 func (s *SessionStore) RevokeByAppID(ctx context.Context, appID int) ([]int, []uuid.UUID, error) {

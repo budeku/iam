@@ -20,7 +20,7 @@ type RefreshTokenCreateResp struct {
 	ID int
 }
 
-type RefreshTokenInfoResp struct {
+type RefreshTokenGetResp struct {
 	ID        int
 	AppID     int
 	SessionID int
@@ -33,7 +33,7 @@ type RefreshTokenInfoResp struct {
 }
 
 type RefreshTokenStore interface {
-	GetByIdentity(ctx context.Context, identity []byte) (*RefreshTokenInfoResp, error)
+	GetByIdentity(ctx context.Context, identity []byte) (*RefreshTokenGetResp, error)
 
 	Create(ctx context.Context, body RefreshTokenCommand) (*RefreshTokenCreateResp, error)
 

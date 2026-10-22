@@ -23,7 +23,7 @@ type SessionCreateResp struct {
 	ID int
 }
 
-type SessionInfoResp struct {
+type SessionGetResp struct {
 	ID              int
 	Identity        uuid.UUID
 	AppID           int
@@ -39,13 +39,13 @@ type SessionInfoResp struct {
 }
 
 type SessionStore interface {
-	GetByID(ctx context.Context, id int) (*SessionInfoResp, error)
+	Get(ctx context.Context, id int) (*SessionGetResp, error)
 
 	Create(ctx context.Context, body SessionCommand) (*SessionCreateResp, error)
 
 	UpdateLastActive(ctx context.Context, id int, t time.Time) error
 	RevokedByID(ctx context.Context, id int) error
-	RevokedByIdentity(ctx context.Context, identity uuid.UUID) (*SessionInfoResp, error)
+	RevokedByIdentity(ctx context.Context, identity uuid.UUID) (int, error)
 	RevokeByAppID(ctx context.Context, appID int) ([]int, []uuid.UUID, error)
 }
 

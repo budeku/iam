@@ -60,7 +60,7 @@ func (s *UserStore) InitSuperAdmin(ctx context.Context, username, email, passwor
 	return res, nil
 }
 
-func userSelectFields() []string {
+func userGetFields() []string {
 	return []string{
 		user.FieldID,
 		user.FieldUsername,
@@ -79,7 +79,7 @@ func (s *UserStore) Get(ctx context.Context, id int) (*biz.UserGetResp, error) {
 			user.IDEQ(id),
 			user.DeletedAtIsNil(),
 		).
-		Select(userSelectFields()...).
+		Select(userGetFields()...).
 		Only(ctx)
 
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*biz.Us
 			user.UsernameEQ(username),
 			user.DeletedAtIsNil(),
 		).
-		Select(userSelectFields()...).
+		Select(userGetFields()...).
 		Only(ctx)
 
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*biz.UserGetR
 			user.EmailEQ(email),
 			user.DeletedAtIsNil(),
 		).
-		Select(userSelectFields()...).
+		Select(userGetFields()...).
 		Only(ctx)
 
 	if err != nil {
@@ -136,7 +136,7 @@ func (s *UserStore) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*biz.Use
 			user.UUIDEQ(userUUID),
 			user.DeletedAtIsNil(),
 		).
-		Select(userSelectFields()...).
+		Select(userGetFields()...).
 		Only(ctx)
 
 	if err != nil {

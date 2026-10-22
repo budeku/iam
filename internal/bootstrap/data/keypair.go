@@ -52,10 +52,10 @@ func initKeypair(ctx context.Context, kpStore *store.KeypairStore, result *Resul
 	if err != nil {
 		return err
 	}
-	privEncryptedHexOrBase64 := base64.StdEncoding.EncodeToString(encryptedBytes)
+	encryptedPrivBase64 := base64.StdEncoding.EncodeToString(encryptedBytes)
 
 	kid := uuid.NewString()
-	if _, err := kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, privEncryptedHexOrBase64); err != nil {
+	if _, err := kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, encryptedPrivBase64); err != nil {
 		return err
 	}
 

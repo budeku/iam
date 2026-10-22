@@ -18,6 +18,17 @@ func NewAppStore(client *db.Client) *AppStore {
 	return &AppStore{newBaseStore(client)}
 }
 
+func appListFields() []string {
+	return []string{
+		app.FieldID,
+		app.FieldName,
+		app.FieldClientID,
+		app.FieldStatus,
+		app.FieldIsSystem,
+		app.FieldCreatedAt,
+	}
+}
+
 func (s *AppStore) List(ctx context.Context, keyword string, page, perPage int) ([]biz.AppListItemResp, int, error) {
 	q := s.Client(ctx).App.Query().
 		Where(app.DeletedAtIsNil())
@@ -43,6 +54,7 @@ func (s *AppStore) List(ctx context.Context, keyword string, page, perPage int) 
 
 	list, err := q.
 		Order(db.Desc(app.FieldID)).
+		Select(appListFields()...).
 		Offset(offset).
 		Limit(limit).
 		All(ctx)
@@ -60,6 +72,7 @@ func (s *AppStore) ListByIds(ctx context.Context, ids []int) ([]biz.AppListItemR
 
 	list, err := s.Client(ctx).App.Query().
 		Where(app.IDIn(ids...), app.DeletedAtIsNil()).
+		Select(appListFields()...).
 		Order(db.Desc(app.FieldID)).
 		All(ctx)
 	if err != nil {
@@ -69,7 +82,7 @@ func (s *AppStore) ListByIds(ctx context.Context, ids []int) ([]biz.AppListItemR
 	return toAppList(list), nil
 }
 
-func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppInfoResp, error) {
+func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Query().
 		Where(app.IDEQ(id), app.DeletedAtIsNil()).
 		Only(ctx)
@@ -82,7 +95,7 @@ func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppInfoResp, error) {
 	return toAppInfo(info), nil
 }
 
-func (s *AppStore) GetByClientID(ctx context.Context, clientID string) (*biz.AppInfoResp, error) {
+func (s *AppStore) GetByClientID(ctx context.Context, clientID string) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Query().
 		Where(app.ClientIDEQ(clientID), app.DeletedAtIsNil()).
 		Only(ctx)
@@ -116,7 +129,7 @@ func (s *AppStore) Duplicate(ctx context.Context, name, clientID string, id ...i
 	return exist, nil
 }
 
-func (s *AppStore) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*biz.AppInfoResp, error) {
+func (s *AppStore) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Create().
 		SetName(name).
 		SetClientID(clientID).
@@ -130,7 +143,7 @@ func (s *AppStore) Create(ctx context.Context, name, clientID string, redirectUr
 	return toAppInfo(info), nil
 }
 
-func (s *AppStore) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*biz.AppInfoResp, error) {
+func (s *AppStore) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
 	if _, err := s.Get(ctx, id); err != nil {
 		return nil, err
 	}

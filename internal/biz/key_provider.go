@@ -59,7 +59,7 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 	}
 
 	// 缓存未命中，回源查数据库
-	dbKp, err := p.keypairStore.GetActiveByAppID(ctx, appID)
+	dbKp, err := p.keypairStore.GetByAppID(ctx, appID)
 	if err != nil {
 		return "", nil, err
 	}
@@ -100,21 +100,32 @@ func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.Publ
 	var pubPEM string
 	pubPEM, err := p.rdb.Get(ctx, cacheKey)
 	if err == nil && pubPEM != "" {
+		// 防缓存穿透
+		if pubPEM == "__NULL__" {
+			return nil, ErrNotFound
+		}
+
 		pub, parseErr := parsePublicKeyPEM(pubPEM, kid)
 		if parseErr == nil {
 			return pub, nil
 		}
+
+		_ = p.rdb.Del(ctx, cacheKey)
 	}
 
 	// 缓存未命中，回源查数据库
 	dbKp, err := p.keypairStore.GetByKid(ctx, kid)
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			_ = p.rdb.Set(ctx, cacheKey, "__NULL__", 2*time.Minute)
+		}
 		return nil, err
 	}
 
 	// 解析公钥
 	pub, err := parsePublicKeyPEM(dbKp.PublicKey, kid)
 	if err != nil {
+		_ = p.rdb.Del(ctx, cacheKey)
 		return nil, err
 	}
 

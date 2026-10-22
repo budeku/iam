@@ -18,7 +18,7 @@ type AppListItemResp struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type AppInfoResp struct {
+type AppGetResp struct {
 	ID           int       `json:"id"`
 	Name         string    `json:"name"`
 	ClientID     string    `json:"client_id"`
@@ -33,14 +33,14 @@ type AppStore interface {
 	List(ctx context.Context, keyword string, page, perPage int) ([]AppListItemResp, int, error)
 	ListByIds(ctx context.Context, ids []int) ([]AppListItemResp, error)
 
-	Get(ctx context.Context, id int) (*AppInfoResp, error)
-	GetByClientID(ctx context.Context, clientID string) (*AppInfoResp, error)
+	Get(ctx context.Context, id int) (*AppGetResp, error)
+	GetByClientID(ctx context.Context, clientID string) (*AppGetResp, error)
 
 	Duplicate(ctx context.Context, name, clientID string, id ...int) (bool, error)
 
-	Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppInfoResp, error)
+	Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error)
 
-	Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppInfoResp, error)
+	Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error)
 	UpdateStatus(ctx context.Context, id int, status bool) error
 
 	Delete(ctx context.Context, id int) error
@@ -74,11 +74,11 @@ func (b *AppBiz) List(ctx context.Context, keyword string, page, perPage int) ([
 	return b.store.List(ctx, keyword, page, perPage)
 }
 
-func (b *AppBiz) Info(ctx context.Context, id int) (*AppInfoResp, error) {
+func (b *AppBiz) Info(ctx context.Context, id int) (*AppGetResp, error) {
 	return b.store.Get(ctx, id)
 }
 
-func (b *AppBiz) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppInfoResp, error) {
+func (b *AppBiz) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error) {
 	exist, err := b.store.Duplicate(ctx, name, clientID)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (b *AppBiz) Create(ctx context.Context, name, clientID string, redirectUris
 	return b.store.Create(ctx, name, clientID, redirectUris, status)
 }
 
-func (b *AppBiz) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppInfoResp, error) {
+func (b *AppBiz) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error) {
 	oldApp, err := b.store.Get(ctx, id)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (b *AppBiz) Update(ctx context.Context, id int, name, clientID string, redi
 		return nil, errors.New("应用名称或 ClientID 已存在")
 	}
 
-	var updated *AppInfoResp
+	var updated *AppGetResp
 	needRevoke := oldApp.Status && !status
 
 	err = b.transactor.WithTx(ctx, func(txCtx context.Context) error {

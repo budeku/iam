@@ -37,6 +37,8 @@ func New(app *wire.App) *gin.Engine {
 }
 
 func registerRoutes(r *gin.Engine, app *wire.App) {
+	r.GET("/.well-known/jwks.json", app.Keypair.JWKS)
+
 	api := r.Group("/api")
 	auth := api.Group("/auth")
 	{
@@ -59,5 +61,11 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 		admin.PUT("/apps/:id", app.App.Update)
 		admin.PUT("/apps/:id/status", app.App.UpdateStatus)
 		admin.DELETE("/apps/:id", app.App.Delete)
+
+		admin.GET("/keypairs", app.Keypair.List)
+		admin.POST("/keypairs", app.Keypair.Create)
+		admin.GET("/keypairs/:id", app.Keypair.Info)
+		admin.PUT("/keypairs/:id/downgrade", app.Keypair.Downgrade)
+		admin.PUT("/keypairs/:id/retire", app.Keypair.Retire)
 	}
 }
