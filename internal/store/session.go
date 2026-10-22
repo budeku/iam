@@ -20,6 +20,20 @@ func NewSessionStore(client *db.Client) *SessionStore {
 	return &SessionStore{newBaseStore(client)}
 }
 
+func (s *SessionStore) GetByID(ctx context.Context, id int) (*biz.SessionInfoResp, error) {
+	info, err := s.Client(ctx).Session.Query().
+		Where(session.IDEQ(id)).
+		Only(ctx)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, biz.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return toSessionInfoResp(info), nil
+}
+
 func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*biz.SessionCreateResp, error) {
 	info, err := s.Client(ctx).Session.Create().
 		SetIdentity(body.Identity).
@@ -43,6 +57,20 @@ func (s *SessionStore) UpdateLastActive(ctx context.Context, id int, t time.Time
 		SetLastActiveAt(t).
 		Exec(ctx)
 
+	if err != nil {
+		if db.IsNotFound(err) {
+			return biz.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *SessionStore) RevokedByID(ctx context.Context, id int) error {
+	err := s.Client(ctx).Session.UpdateOneID(id).
+		SetRevokedAt(time.Now()).
+		Exec(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return biz.ErrNotFound

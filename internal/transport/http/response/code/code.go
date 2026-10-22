@@ -23,6 +23,10 @@ const (
 	InvalidParams Code = 2000 + iota
 )
 
+const (
+	RefreshTokenInvalid Code = 3000 + iota
+)
+
 type meta struct {
 	message    string
 	httpStatus int
@@ -41,6 +45,8 @@ var registry = map[Code]meta{
 	InternalError:   {"服务器内部错误", http.StatusInternalServerError},
 
 	InvalidParams: {"无效参数", http.StatusBadRequest},
+
+	RefreshTokenInvalid: {"刷新令牌无效或过期", http.StatusUnauthorized},
 }
 
 func (c Code) Message() string {

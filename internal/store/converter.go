@@ -38,8 +38,35 @@ func toSessionInfoResp(info *db.Session) *biz.SessionInfoResp {
 	}
 
 	return &biz.SessionInfoResp{
-		ID:       info.ID,
-		Identity: info.Identity,
+		ID:              info.ID,
+		Identity:        info.Identity,
+		AppID:           info.AppID,
+		UserID:          info.UserID,
+		IP:              info.IP,
+		UserAgent:       info.UserAgent,
+		AuthMethod:      info.AuthMethod,
+		AuthenticatedAt: info.AuthenticatedAt,
+		LastActiveAt:    info.LastActiveAt,
+		RevokedAt:       info.RevokedAt,
+		ExpiresAt:       info.ExpiresAt,
+		CreatedAt:       info.CreatedAt,
+	}
+}
+
+func toRefreshTokenInfoResp(info *db.RefreshToken) *biz.RefreshTokenInfoResp {
+	if info == nil {
+		return nil
+	}
+	return &biz.RefreshTokenInfoResp{
+		ID:        info.ID,
+		AppID:     info.AppID,
+		SessionID: info.SessionID,
+		UserID:    info.UserID,
+		Identity:  info.Identity,
+		Jti:       info.Jti,
+		RevokedAt: info.RevokedAt,
+		ExpiresAt: info.ExpiresAt,
+		CreatedAt: info.CreatedAt,
 	}
 }
 

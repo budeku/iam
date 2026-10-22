@@ -20,9 +20,24 @@ type RefreshTokenCreateResp struct {
 	ID int
 }
 
+type RefreshTokenInfoResp struct {
+	ID        int
+	AppID     int
+	SessionID int
+	UserID    int
+	Identity  []byte
+	Jti       uuid.UUID
+	RevokedAt *time.Time
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
 type RefreshTokenStore interface {
+	GetByIdentity(ctx context.Context, identity []byte) (*RefreshTokenInfoResp, error)
+
 	Create(ctx context.Context, body RefreshTokenCommand) (*RefreshTokenCreateResp, error)
 
+	RevokeByID(ctx context.Context, id int) error
 	RevokedBySessionID(ctx context.Context, sessionID int) error
 }
 

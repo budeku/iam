@@ -104,6 +104,7 @@ type JWT struct {
 	Audience        string        `yaml:"audience" mapstructure:"audience"`
 	AccessTokenTTL  time.Duration `yaml:"access_token_ttl" mapstructure:"access_token_ttl"`
 	RefreshTokenTTL time.Duration `yaml:"refresh_token_ttl" mapstructure:"refresh_token_ttl"`
+	SessionTTL      time.Duration `yaml:"session_ttl" mapstructure:"session_ttl"`
 }
 
 type Config struct {

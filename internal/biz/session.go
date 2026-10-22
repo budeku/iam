@@ -24,14 +24,27 @@ type SessionCreateResp struct {
 }
 
 type SessionInfoResp struct {
-	ID       int
-	Identity uuid.UUID
+	ID              int
+	Identity        uuid.UUID
+	AppID           int
+	UserID          int
+	IP              string
+	UserAgent       string
+	AuthMethod      enum.SessionAuthMethod
+	AuthenticatedAt time.Time
+	LastActiveAt    time.Time
+	RevokedAt       *time.Time
+	ExpiresAt       time.Time
+	CreatedAt       time.Time
 }
 
 type SessionStore interface {
+	GetByID(ctx context.Context, id int) (*SessionInfoResp, error)
+
 	Create(ctx context.Context, body SessionCommand) (*SessionCreateResp, error)
 
 	UpdateLastActive(ctx context.Context, id int, t time.Time) error
+	RevokedByID(ctx context.Context, id int) error
 	RevokedByIdentity(ctx context.Context, identity uuid.UUID) (*SessionInfoResp, error)
 }
 

@@ -295,6 +295,12 @@ func validateJWT(j JWT) error {
 	if j.RefreshTokenTTL <= 0 {
 		errs = append(errs, errors.New("jwt.refresh_token_ttl 必须大于 0"))
 	}
+	if j.AccessTokenTTL > 0 && j.RefreshTokenTTL > 0 && j.AccessTokenTTL > j.RefreshTokenTTL {
+		errs = append(errs, errors.New("jwt.access_token_ttl 不能大于 jwt.refresh_token_ttl"))
+	}
+	if j.SessionTTL > 0 && j.RefreshTokenTTL > j.SessionTTL {
+		errs = append(errs, errors.New("jwt.refresh_token_ttl 不能大于 jwt.session_ttl"))
+	}
 
 	if len(errs) > 0 {
 		return errors.Join(errs...)

@@ -108,8 +108,9 @@ func defaultConfig() *Config {
 		JWT: JWT{
 			Issuer:          "iam",
 			Audience:        "",
-			AccessTokenTTL:  5 * time.Minute,
-			RefreshTokenTTL: 7 * 24 * time.Hour,
+			AccessTokenTTL:  15 * time.Minute,
+			RefreshTokenTTL: 24 * time.Hour,
+			SessionTTL:      7 * 24 * time.Hour,
 		},
 	}
 }

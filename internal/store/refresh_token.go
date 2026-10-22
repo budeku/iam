@@ -42,3 +42,33 @@ func (s *RefreshTokenStore) RevokedBySessionID(ctx context.Context, sessionID in
 		Save(ctx)
 	return err
 }
+
+func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) (*biz.RefreshTokenInfoResp, error) {
+	info, err := s.Client(ctx).RefreshToken.Query().
+		Where(refreshtoken.IdentityEQ(identity)).
+		Only(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, biz.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return toRefreshTokenInfoResp(info), nil
+}
+
+func (s *RefreshTokenStore) RevokeByID(ctx context.Context, id int) error {
+	err := s.Client(ctx).RefreshToken.UpdateOneID(id).
+		SetRevokedAt(time.Now()).
+		Exec(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return biz.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}

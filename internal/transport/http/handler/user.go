@@ -67,6 +67,33 @@ func (h *UserHandler) Logout(c *gin.Context) {
 	response.OK(c)
 }
 
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	refreshToken, err := cookieutil.Cookie().Get(c.Request, consts.CookieRefreshToken)
+	if err != nil || refreshToken == "" {
+		response.Err(c, code.RefreshTokenInvalid)
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	result, err := h.userBiz.RefreshToken(ctx, refreshToken)
+	if err != nil {
+		cookie := cookieutil.Cookie()
+		cookie.Delete(c.Writer, consts.CookieAccessToken)
+		cookie.Delete(c.Writer, consts.CookieRefreshToken)
+
+		response.ErrMessage(c, code.BadRequest, err.Error())
+		return
+	}
+
+	jwtCfg := conf.Get().JWT
+	cookie := cookieutil.Cookie()
+	cookie.Set(c.Writer, consts.CookieAccessToken, result.AccessToken, int(jwtCfg.AccessTokenTTL.Seconds()))
+	cookie.Set(c.Writer, consts.CookieRefreshToken, result.RefreshToken, int(jwtCfg.RefreshTokenTTL.Seconds()))
+
+	response.OK(c)
+}
+
 func (h *UserHandler) Me(c *gin.Context) {
 	userUUID, ok := middleware.UserUUIDFromContext(c)
 	if !ok {
