@@ -37,3 +37,8 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# 自动导入
+.eslintrc-auto-import.json
+auto-imports.d.ts
+components.d.ts
