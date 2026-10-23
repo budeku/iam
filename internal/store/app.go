@@ -82,6 +82,22 @@ func (s *AppStore) ListByIds(ctx context.Context, ids []int) ([]biz.AppListItemR
 	return toAppList(list), nil
 }
 
+func (s *AppStore) Options(ctx context.Context) ([]biz.AppOptionItemResp, error) {
+	list, err := s.Client(ctx).App.Query().
+		Where(
+			app.DeletedAtIsNil(),
+			app.StatusEQ(true),
+		).
+		Select(app.FieldID, app.FieldName).
+		Order(db.Asc(app.FieldName)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return toAppOptions(list), nil
+}
+
 func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Query().
 		Where(app.IDEQ(id), app.DeletedAtIsNil()).

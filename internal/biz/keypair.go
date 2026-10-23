@@ -41,7 +41,6 @@ type KeypairListItemResp struct {
 	Algorithm   enum.KeypairAlgorithm `json:"algorithm"`
 	Status      enum.KeypairStatus    `json:"status"`
 	ActivatedAt time.Time             `json:"activated_at"`
-	CreatedAt   time.Time             `json:"created_at"`
 }
 
 type KeypairCreateResp struct {

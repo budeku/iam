@@ -27,9 +27,15 @@ type AppGetResp struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+type AppOptionItemResp struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type AppStore interface {
 	List(ctx context.Context, keyword string, page, perPage int) ([]AppListItemResp, int, error)
 	ListByIds(ctx context.Context, ids []int) ([]AppListItemResp, error)
+	Options(ctx context.Context) ([]AppOptionItemResp, error)
 
 	Get(ctx context.Context, id int) (*AppGetResp, error)
 	GetByClientID(ctx context.Context, clientID uuid.UUID) (*AppGetResp, error)
@@ -71,6 +77,10 @@ func NewAppBiz(
 
 func (b *AppBiz) List(ctx context.Context, keyword string, page, perPage int) ([]AppListItemResp, int, error) {
 	return b.store.List(ctx, keyword, page, perPage)
+}
+
+func (b *AppBiz) Options(ctx context.Context) ([]AppOptionItemResp, error) {
+	return b.store.Options(ctx)
 }
 
 func (b *AppBiz) Info(ctx context.Context, id int) (*AppGetResp, error) {

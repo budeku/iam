@@ -139,7 +139,6 @@ func toKeypairList(list []*db.Keypair) []biz.KeypairListItemResp {
 			Algorithm:   v.Algorithm,
 			Status:      v.Status,
 			ActivatedAt: v.ActivatedAt,
-			CreatedAt:   v.CreatedAt,
 		})
 	}
 
@@ -189,4 +188,20 @@ func toAppInfo(info *db.App) *biz.AppGetResp {
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}
+}
+
+func toAppOptions(list []*db.App) []biz.AppOptionItemResp {
+	if len(list) == 0 {
+		return []biz.AppOptionItemResp{}
+	}
+
+	res := make([]biz.AppOptionItemResp, 0, len(list))
+	for _, v := range list {
+		res = append(res, biz.AppOptionItemResp{
+			ID:   v.ID,
+			Name: v.Name,
+		})
+	}
+
+	return res
 }

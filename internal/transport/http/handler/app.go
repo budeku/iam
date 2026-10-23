@@ -39,6 +39,16 @@ func (h *AppHandler) List(c *gin.Context) {
 	})
 }
 
+func (h *AppHandler) Options(c *gin.Context) {
+	list, err := h.appBiz.Options(c.Request.Context())
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.Success(c, list)
+}
+
 func (h *AppHandler) Info(c *gin.Context) {
 	var params InfoPathParams
 	if err := c.ShouldBindUri(&params); err != nil {

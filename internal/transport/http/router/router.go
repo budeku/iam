@@ -56,6 +56,7 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 	admin.Use(middleware.RequireSuperAdmin(app.UserBiz))
 	{
 		admin.GET("/apps", app.App.List)
+		admin.GET("/apps/options", app.App.Options)
 		admin.GET("/apps/:id", app.App.Info)
 		admin.POST("/apps", app.App.Create)
 		admin.PUT("/apps/:id", app.App.Update)
