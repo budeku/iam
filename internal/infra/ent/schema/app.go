@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // App holds the schema definition for the App entity.
@@ -34,10 +35,10 @@ func (App) Fields() []ent.Field {
 			Unique().
 			MaxLen(64),
 
-		field.String("client_id").
-			NotEmpty().
-			Unique().
-			MaxLen(36),
+		field.UUID("client_id", uuid.UUID{}).
+			Default(uuid.New).
+			Immutable().
+			Unique(),
 
 		field.JSON("redirect_uris", []string{}),
 

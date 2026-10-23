@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // Keypair holds the schema definition for the Keypair entity.
@@ -33,10 +34,10 @@ func (Keypair) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("app_id"),
 
-		field.String("kid").
-			NotEmpty().
-			Unique().
-			MaxLen(64),
+		field.UUID("kid", uuid.UUID{}).
+			Default(uuid.New).
+			Immutable().
+			Unique(),
 
 		field.Uint8("algorithm").
 			GoType(enum.KeypairAlgorithm(0)).
