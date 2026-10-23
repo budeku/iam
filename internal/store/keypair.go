@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var _ biz.KeypairStore = (*KeypairStore)(nil)
@@ -35,7 +37,7 @@ func (s *KeypairStore) GetIAMKeypair(ctx context.Context) (*db.Keypair, error) {
 	return kp, nil
 }
 
-func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid string, algorithm enum.KeypairAlgorithm, publicKey, privateKey string) (*db.Keypair, error) {
+func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algorithm enum.KeypairAlgorithm, publicKey, privateKey string) (*db.Keypair, error) {
 	kp, err := s.Client(ctx).Keypair.Create().
 		SetAppID(conf.IAMAppID).
 		SetKid(kid).
@@ -120,7 +122,7 @@ func (s *KeypairStore) GetByAppID(ctx context.Context, appID int) (*biz.KeypairG
 	return toKeypairGetResp(info), nil
 }
 
-func (s *KeypairStore) GetByKid(ctx context.Context, kid string) (*biz.KeypairGetResp, error) {
+func (s *KeypairStore) GetByKid(ctx context.Context, kid uuid.UUID) (*biz.KeypairGetResp, error) {
 	info, err := s.Client(ctx).Keypair.Query().
 		Where(
 			keypair.Kid(kid),
@@ -154,7 +156,7 @@ func (s *KeypairStore) GetAllValidByAppID(ctx context.Context, appID int) ([]biz
 func (s *KeypairStore) Create(
 	ctx context.Context,
 	appID int,
-	kid string,
+	kid uuid.UUID,
 	algorithm enum.KeypairAlgorithm,
 	status enum.KeypairStatus,
 	publicKey, privateKey string,

@@ -16,6 +16,8 @@ import (
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/pkg/cryptoutil"
+
+	"github.com/google/uuid"
 )
 
 type BizKeyProvider struct {
@@ -24,7 +26,7 @@ type BizKeyProvider struct {
 }
 
 type cachedKeypair struct {
-	Kid        string                `json:"kid"`
+	Kid        uuid.UUID             `json:"kid"`
 	PrivateKey string                `json:"private_key"`
 	Algorithm  enum.KeypairAlgorithm `json:"algorithm"`
 }
@@ -40,19 +42,19 @@ func (p *BizKeyProvider) activeKeypairCacheKey(appID int) string {
 	return fmt.Sprintf("keypair:active:%d", appID)
 }
 
-func (p *BizKeyProvider) publicCertCacheKey(kid string) string {
-	return fmt.Sprintf("keypair:pub:%s", kid)
+func (p *BizKeyProvider) publicCertCacheKey(kid uuid.UUID) string {
+	return fmt.Sprintf("keypair:pub:%s", kid.String())
 }
 
 // 私钥签名（Signing）
-func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, crypto.Signer, error) {
+func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (uuid.UUID, crypto.Signer, error) {
 	cacheKey := p.activeKeypairCacheKey(appID)
 
 	var kp cachedKeypair
 
 	err := p.rdb.GetJSON(ctx, cacheKey, &kp)
-	if err == nil && kp.Kid != "" {
-		signer, parseErr := parsePrivateKey(kp.Kid, kp.PrivateKey, kp.Algorithm)
+	if err == nil && kp.Kid != uuid.Nil {
+		signer, parseErr := parsePrivateKey(kp.PrivateKey, kp.Algorithm)
 		if parseErr == nil {
 			return kp.Kid, signer, nil
 		}
@@ -61,25 +63,25 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 	// 缓存未命中，回源查数据库
 	dbKp, err := p.keypairStore.GetByAppID(ctx, appID)
 	if err != nil {
-		return "", nil, err
+		return uuid.Nil, nil, err
 	}
 
 	// 从数据库读取后进行解密
 	ciphertext, err := base64.StdEncoding.DecodeString(dbKp.PrivateKey)
 	if err != nil {
-		return "", nil, fmt.Errorf("私钥 Base64 解码失败: %w", err)
+		return uuid.Nil, nil, fmt.Errorf("私钥 Base64 解码失败: %w", err)
 	}
 
 	plaintextPEMBytes, err := cryptoutil.Decrypt(ciphertext, []byte(conf.Get().Security.MasterKey))
 	if err != nil {
-		return "", nil, fmt.Errorf("私钥解密失败: %w", err)
+		return uuid.Nil, nil, fmt.Errorf("私钥解密失败: %w", err)
 	}
 	privPEM := string(plaintextPEMBytes)
 
 	// 解析私钥
-	signer, err := parsePrivateKey(dbKp.Kid, privPEM, dbKp.Algorithm)
+	signer, err := parsePrivateKey(privPEM, dbKp.Algorithm)
 	if err != nil {
-		return "", nil, err
+		return uuid.Nil, nil, err
 	}
 
 	// 写入缓存
@@ -94,7 +96,7 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (string, cry
 }
 
 // 公钥验签（Verifying）
-func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.PublicKey, error) {
+func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid uuid.UUID) (crypto.PublicKey, error) {
 	cacheKey := p.publicCertCacheKey(kid)
 
 	var pubPEM string
@@ -105,7 +107,7 @@ func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.Publ
 			return nil, ErrNotFound
 		}
 
-		pub, parseErr := parsePublicKeyPEM(pubPEM, kid)
+		pub, parseErr := parsePublicKeyPEM(pubPEM)
 		if parseErr == nil {
 			return pub, nil
 		}
@@ -123,7 +125,7 @@ func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.Publ
 	}
 
 	// 解析公钥
-	pub, err := parsePublicKeyPEM(dbKp.PublicKey, kid)
+	pub, err := parsePublicKeyPEM(dbKp.PublicKey)
 	if err != nil {
 		_ = p.rdb.Del(ctx, cacheKey)
 		return nil, err
@@ -135,10 +137,10 @@ func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid string) (crypto.Publ
 	return pub, nil
 }
 
-func parsePrivateKey(kid, privPEM string, algo enum.KeypairAlgorithm) (crypto.Signer, error) {
+func parsePrivateKey(privPEM string, algo enum.KeypairAlgorithm) (crypto.Signer, error) {
 	block, _ := pem.Decode([]byte(privPEM))
 	if block == nil {
-		return nil, fmt.Errorf("解析私钥 PEM 失败: kid=%s", kid)
+		return nil, fmt.Errorf("解析私钥 PEM 失败")
 	}
 
 	var signer crypto.Signer
@@ -180,10 +182,10 @@ func parsePrivateKey(kid, privPEM string, algo enum.KeypairAlgorithm) (crypto.Si
 	return signer, nil
 }
 
-func parsePublicKeyPEM(pubPEM, kid string) (crypto.PublicKey, error) {
+func parsePublicKeyPEM(pubPEM string) (crypto.PublicKey, error) {
 	block, _ := pem.Decode([]byte(pubPEM))
 	if block == nil {
-		return nil, fmt.Errorf("解析公钥 PEM 失败: kid=%s", kid)
+		return nil, fmt.Errorf("解析公钥 PEM 失败")
 	}
 
 	pub, err := x509.ParsePKIXPublicKey(block.Bytes)

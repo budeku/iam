@@ -12,7 +12,7 @@ import (
 type AppListItemResp struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
-	ClientID  string    `json:"client_id"`
+	ClientID  uuid.UUID `json:"client_id"`
 	Status    bool      `json:"status"`
 	IsSystem  bool      `json:"is_system"`
 	CreatedAt time.Time `json:"created_at"`
@@ -21,7 +21,7 @@ type AppListItemResp struct {
 type AppGetResp struct {
 	ID           int       `json:"id"`
 	Name         string    `json:"name"`
-	ClientID     string    `json:"client_id"`
+	ClientID     uuid.UUID `json:"client_id"`
 	RedirectUris []string  `json:"redirect_uris"`
 	Status       bool      `json:"status"`
 	IsSystem     bool      `json:"is_system"`
@@ -34,13 +34,14 @@ type AppStore interface {
 	ListByIds(ctx context.Context, ids []int) ([]AppListItemResp, error)
 
 	Get(ctx context.Context, id int) (*AppGetResp, error)
-	GetByClientID(ctx context.Context, clientID string) (*AppGetResp, error)
+	GetByClientID(ctx context.Context, clientID uuid.UUID) (*AppGetResp, error)
 
-	Duplicate(ctx context.Context, name, clientID string, id ...int) (bool, error)
+	CreateDuplicate(ctx context.Context, name string, clientID uuid.UUID) (bool, error)
+	UpdateDuplicate(ctx context.Context, id int, name string) (bool, error)
 
-	Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error)
+	Create(ctx context.Context, name string, clientID uuid.UUID, redirectUris []string, status bool) (*AppGetResp, error)
 
-	Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error)
+	Update(ctx context.Context, id int, name string, redirectUris []string, status bool) (*AppGetResp, error)
 	UpdateStatus(ctx context.Context, id int, status bool) error
 
 	Delete(ctx context.Context, id int) error
@@ -78,8 +79,9 @@ func (b *AppBiz) Info(ctx context.Context, id int) (*AppGetResp, error) {
 	return b.store.Get(ctx, id)
 }
 
-func (b *AppBiz) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error) {
-	exist, err := b.store.Duplicate(ctx, name, clientID)
+func (b *AppBiz) Create(ctx context.Context, name string, redirectUris []string, status bool) (*AppGetResp, error) {
+	clientID := uuid.New()
+	exist, err := b.store.CreateDuplicate(ctx, name, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +91,13 @@ func (b *AppBiz) Create(ctx context.Context, name, clientID string, redirectUris
 	return b.store.Create(ctx, name, clientID, redirectUris, status)
 }
 
-func (b *AppBiz) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*AppGetResp, error) {
+func (b *AppBiz) Update(ctx context.Context, id int, name string, redirectUris []string, status bool) (*AppGetResp, error) {
 	oldApp, err := b.store.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	exist, err := b.store.Duplicate(ctx, name, clientID, id)
+	exist, err := b.store.UpdateDuplicate(ctx, id, name)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +110,7 @@ func (b *AppBiz) Update(ctx context.Context, id int, name, clientID string, redi
 
 	err = b.transactor.WithTx(ctx, func(txCtx context.Context) error {
 		var innerErr error
-		updated, innerErr = b.store.Update(txCtx, id, name, clientID, redirectUris, status)
+		updated, innerErr = b.store.Update(txCtx, id, name, redirectUris, status)
 		return innerErr
 	})
 

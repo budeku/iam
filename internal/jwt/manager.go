@@ -54,7 +54,7 @@ func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name 
 	}
 
 	// 使用 kid 作为盐的一部分，保证即使密钥轮换，指纹算法的 salt 也匹配
-	secretBytes := []byte(kid + "_fp_salt")
+	secretBytes := []byte(kid.String() + "_fp_salt")
 	fp := generateFingerprint(ip, userAgent, secretBytes)
 
 	var alg jwa.SignatureAlgorithm
@@ -71,7 +71,7 @@ func (m *Manager) sign(ctx context.Context, userUUID, sessionID uuid.UUID, name 
 	if err != nil {
 		return "", err // 私钥转换为 JWK 失败
 	}
-	_ = jwkKey.Set(jwk.KeyIDKey, kid)
+	_ = jwkKey.Set(jwk.KeyIDKey, kid.String())
 
 	now := time.Now()
 	builder := jwtlib.NewBuilder().
@@ -113,8 +113,13 @@ func (m *Manager) Parse(ctx context.Context, tokenString string, currentIP, curr
 	}
 
 	headers := msg.Signatures()[0].ProtectedHeaders()
-	kid, _ := headers.KeyID()
+	kidStr, _ := headers.KeyID()
 	alg, _ := headers.Algorithm()
+
+	kid, err := uuid.Parse(kidStr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid key id format: %v", ErrInvalidToken, err)
+	}
 
 	pub, err := m.keys.VerifyKey(ctx, kid)
 	if err != nil {
@@ -149,7 +154,7 @@ func (m *Manager) Parse(ctx context.Context, tokenString string, currentIP, curr
 
 	// 校验环境指纹 (IP + UA)
 	// 还原当时签名时用的动态 secret（利用 kid）
-	secretBytes := []byte(kid + "_fp_salt")
+	secretBytes := []byte(kid.String() + "_fp_salt")
 	expectedFP := generateFingerprint(currentIP, currentUserAgent, secretBytes)
 
 	if claims.Fingerprint != "" && claims.Fingerprint != expectedFP {

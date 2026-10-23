@@ -57,7 +57,6 @@ func (h *AppHandler) Info(c *gin.Context) {
 
 type AppCreateReq struct {
 	Name         string   `json:"name" binding:"required,max=64"`
-	ClientID     string   `json:"client_id" binding:"required,max=36"`
 	RedirectUris []string `json:"redirect_uris" binding:"required,min=1,dive,required,url"`
 	Status       bool     `json:"status"`
 }
@@ -71,7 +70,7 @@ func (h *AppHandler) Create(c *gin.Context) {
 
 	_, err := h.appBiz.Create(
 		c.Request.Context(),
-		body.Name, body.ClientID,
+		body.Name,
 		body.RedirectUris,
 		body.Status,
 	)
@@ -89,7 +88,6 @@ type AppUpdatePathParams struct {
 
 type AppUpdateReq struct {
 	Name         string   `json:"name" binding:"required,max=64"`
-	ClientID     string   `json:"client_id" binding:"required,max=36"`
 	RedirectUris []string `json:"redirect_uris" binding:"required,min=1,dive,required,url"`
 	Status       bool     `json:"status"`
 }
@@ -107,7 +105,7 @@ func (h *AppHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if _, err := h.appBiz.Update(c.Request.Context(), params.AppID, body.Name, body.ClientID, body.RedirectUris, body.Status); err != nil {
+	if _, err := h.appBiz.Update(c.Request.Context(), params.AppID, body.Name, body.RedirectUris, body.Status); err != nil {
 		response.BadRequest(c)
 		return
 	}

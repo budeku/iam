@@ -6,6 +6,7 @@ import (
 	"budeku/iam/internal/transport/http/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type KeypairHandler struct {
@@ -21,7 +22,7 @@ type KeypairListReq struct {
 }
 
 type KeypairJWKSReq struct {
-	ClientID string `form:"client_id" binding:"required,max=36"`
+	ClientID uuid.UUID `form:"client_id" binding:"required"`
 }
 
 func (h *KeypairHandler) JWKS(c *gin.Context) {

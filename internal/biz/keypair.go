@@ -23,7 +23,7 @@ import (
 type KeypairGetResp struct {
 	ID          int                   `json:"id"`
 	AppID       int                   `json:"app_id"`
-	Kid         string                `json:"kid"`
+	Kid         uuid.UUID             `json:"kid"`
 	Algorithm   enum.KeypairAlgorithm `json:"algorithm"`
 	PublicKey   string                `json:"public_key"`
 	PrivateKey  string                `json:"private_key"`
@@ -37,7 +37,7 @@ type KeypairGetResp struct {
 type KeypairListItemResp struct {
 	ID          int                   `json:"id"`
 	AppID       int                   `json:"app_id"`
-	Kid         string                `json:"kid"`
+	Kid         uuid.UUID             `json:"kid"`
 	Algorithm   enum.KeypairAlgorithm `json:"algorithm"`
 	Status      enum.KeypairStatus    `json:"status"`
 	ActivatedAt time.Time             `json:"activated_at"`
@@ -53,10 +53,10 @@ type KeypairStore interface {
 
 	Get(ctx context.Context, id int) (*KeypairGetResp, error)
 	GetByAppID(ctx context.Context, appID int) (*KeypairGetResp, error)
-	GetByKid(ctx context.Context, kid string) (*KeypairGetResp, error)
+	GetByKid(ctx context.Context, kid uuid.UUID) (*KeypairGetResp, error)
 	GetAllValidByAppID(ctx context.Context, appID int) ([]KeypairGetResp, error)
 
-	Create(ctx context.Context, appID int, kid string, algorithm enum.KeypairAlgorithm, status enum.KeypairStatus, publicKey, privateKey string) (*KeypairCreateResp, error)
+	Create(ctx context.Context, appID int, kid uuid.UUID, algorithm enum.KeypairAlgorithm, status enum.KeypairStatus, publicKey, privateKey string) (*KeypairCreateResp, error)
 
 	Downgrade(ctx context.Context, id int) error
 	Retire(ctx context.Context, id int) error
@@ -87,7 +87,7 @@ func jwksCacheKey(appID int) string {
 }
 
 type cachedPublicKeyItem struct {
-	Kid       string             `json:"kid"`
+	Kid       uuid.UUID          `json:"kid"`
 	PublicKey string             `json:"public_key"`
 	Status    enum.KeypairStatus `json:"status"`
 }
@@ -97,7 +97,7 @@ type jwksCacheWrapper struct {
 	Items   []cachedPublicKeyItem `json:"items"`
 }
 
-func (b *KeypairBiz) JWKS(ctx context.Context, clientID string) (jwt.JWKSet, error) {
+func (b *KeypairBiz) JWKS(ctx context.Context, clientID uuid.UUID) (jwt.JWKSet, error) {
 	appInfo, err := b.appStore.GetByClientID(ctx, clientID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -151,12 +151,12 @@ func (b *KeypairBiz) JWKS(ctx context.Context, clientID string) (jwt.JWKSet, err
 func (b *KeypairBiz) buildJWKSFromCache(items []cachedPublicKeyItem) (jwt.JWKSet, error) {
 	keySet := jwk.NewSet()
 	for _, item := range items {
-		pubKey, err := parsePublicKeyPEM(item.PublicKey, item.Kid)
+		pubKey, err := parsePublicKeyPEM(item.PublicKey)
 		if err != nil {
 			continue
 		}
 
-		jwkKey, err := jwt.PublicKeyToJWK(item.Kid, pubKey)
+		jwkKey, err := jwt.PublicKeyToJWK(item.Kid.String(), pubKey)
 		if err != nil {
 			continue
 		}
@@ -200,12 +200,12 @@ func decryptPrivateKey(encryptedBase64 string) (string, error) {
 	return string(plaintextBytes), nil
 }
 
-func (b *KeypairBiz) evictKeypairCaches(ctx context.Context, appID int, kid string) {
+func (b *KeypairBiz) evictKeypairCaches(ctx context.Context, appID int, kid uuid.UUID) {
 	_ = b.rdb.Del(ctx, jwksCacheKey(appID))
 	_ = b.rdb.Del(ctx, fmt.Sprintf("keypair:active:%d", appID))
 
-	if kid != "" {
-		_ = b.rdb.Del(ctx, fmt.Sprintf("keypair:pub:%s", kid))
+	if kid != uuid.Nil {
+		_ = b.rdb.Del(ctx, fmt.Sprintf("keypair:pub:%s", kid.String()))
 	}
 }
 
@@ -254,7 +254,7 @@ func (b *KeypairBiz) Create(ctx context.Context, appID int, algorithm enum.Keypa
 
 	var createResp *KeypairCreateResp
 	// 随机生成 kid
-	kid := uuid.NewString()
+	kid := uuid.New()
 
 	err = b.transactor.WithTx(ctx, func(txCtx context.Context) error {
 		if status == enum.KeypairStatusActive {

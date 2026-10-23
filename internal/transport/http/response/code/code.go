@@ -36,7 +36,7 @@ var registry = map[Code]meta{
 	Success: {"success", http.StatusOK},
 	Fail:    {"fail", http.StatusBadRequest},
 
-	BadRequest:      {"请求参数错误", http.StatusBadRequest},
+	BadRequest:      {"错误请求", http.StatusBadRequest},
 	Unauthorized:    {"用户未认证", http.StatusUnauthorized},
 	Forbidden:       {"无权访问", http.StatusForbidden},
 	NotFound:        {"资源不存在", http.StatusNotFound},
@@ -53,7 +53,7 @@ func (c Code) Message() string {
 	if m, ok := registry[c]; ok {
 		return m.message
 	}
-	return "unknown error"
+	return "code 不存在"
 }
 
 func (c Code) HTTPStatus() int {

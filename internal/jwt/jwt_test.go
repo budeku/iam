@@ -16,8 +16,9 @@ func TestManager_SignAndParseWithFingerprint(t *testing.T) {
 		t.Fatalf("生成测试私钥失败: %v", err)
 	}
 
-	kid := uuid.NewString()
-	provider := NewMemoryKeyProvider(kid, priv)
+	appID := 1
+	kid := uuid.New()
+	provider := NewMemoryKeyProvider(appID, kid, priv)
 
 	manager := New(
 		provider,
@@ -28,7 +29,6 @@ func TestManager_SignAndParseWithFingerprint(t *testing.T) {
 	userUUID := uuid.New()
 	sessionID := uuid.New()
 	name := "张三"
-	appID := 1
 
 	// 模拟客户端的初始 IP 和 UA
 	clientIP := "192.168.1.100"

@@ -6,6 +6,8 @@ import (
 	"budeku/iam/internal/infra/ent/db/app"
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var _ biz.AppStore = (*AppStore)(nil)
@@ -37,7 +39,6 @@ func (s *AppStore) List(ctx context.Context, keyword string, page, perPage int) 
 		q = q.Where(
 			app.Or(
 				app.NameContains(keyword),
-				app.ClientID(keyword),
 			),
 		)
 	}
@@ -95,7 +96,7 @@ func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppGetResp, error) {
 	return toAppInfo(info), nil
 }
 
-func (s *AppStore) GetByClientID(ctx context.Context, clientID string) (*biz.AppGetResp, error) {
+func (s *AppStore) GetByClientID(ctx context.Context, clientID uuid.UUID) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Query().
 		Where(app.ClientIDEQ(clientID), app.DeletedAtIsNil()).
 		Only(ctx)
@@ -108,7 +109,7 @@ func (s *AppStore) GetByClientID(ctx context.Context, clientID string) (*biz.App
 	return toAppInfo(info), nil
 }
 
-func (s *AppStore) Duplicate(ctx context.Context, name, clientID string, id ...int) (bool, error) {
+func (s *AppStore) CreateDuplicate(ctx context.Context, name string, clientID uuid.UUID) (bool, error) {
 	q := s.Client(ctx).App.Query().
 		Where(
 			app.DeletedAtIsNil(),
@@ -118,9 +119,20 @@ func (s *AppStore) Duplicate(ctx context.Context, name, clientID string, id ...i
 			),
 		)
 
-	if len(id) > 0 && id[0] > 0 {
-		q = q.Where(app.IDNEQ(id[0]))
+	exist, err := q.Exist(ctx)
+	if err != nil {
+		return false, err
 	}
+	return exist, nil
+}
+
+func (s *AppStore) UpdateDuplicate(ctx context.Context, id int, name string) (bool, error) {
+	q := s.Client(ctx).App.Query().
+		Where(
+			app.DeletedAtIsNil(),
+			app.NameEQ(name),
+			app.IDNEQ(id),
+		)
 
 	exist, err := q.Exist(ctx)
 	if err != nil {
@@ -129,7 +141,7 @@ func (s *AppStore) Duplicate(ctx context.Context, name, clientID string, id ...i
 	return exist, nil
 }
 
-func (s *AppStore) Create(ctx context.Context, name, clientID string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
+func (s *AppStore) Create(ctx context.Context, name string, clientID uuid.UUID, redirectUris []string, status bool) (*biz.AppGetResp, error) {
 	info, err := s.Client(ctx).App.Create().
 		SetName(name).
 		SetClientID(clientID).
@@ -143,14 +155,13 @@ func (s *AppStore) Create(ctx context.Context, name, clientID string, redirectUr
 	return toAppInfo(info), nil
 }
 
-func (s *AppStore) Update(ctx context.Context, id int, name, clientID string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
+func (s *AppStore) Update(ctx context.Context, id int, name string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
 	if _, err := s.Get(ctx, id); err != nil {
 		return nil, err
 	}
 
 	info, err := s.Client(ctx).App.UpdateOneID(id).
 		SetName(name).
-		SetClientID(clientID).
 		SetRedirectUris(redirectUris).
 		SetStatus(status).
 		Save(ctx)
