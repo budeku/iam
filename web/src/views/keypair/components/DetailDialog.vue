@@ -6,7 +6,7 @@ import { useKeypair } from './useKeypair'
 import { formatDate } from '@/utils/date'
 
 const { t } = useI18n()
-const { appOptionData, info } = useKeypair()
+const { info } = useKeypair()
 
 const props = defineProps<{
   row?: KeypairListItemResp | null
@@ -40,14 +40,7 @@ watch(
         </el-col>
         <el-col :span="12">
           <el-form-item :label="t('keypair.field.appId')">
-            <el-select v-model="form.app_id" style="width: 100%">
-              <el-option
-                v-for="item in appOptionData"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
-            </el-select>
+            <el-input :model-value="form.app_name" />
           </el-form-item>
         </el-col>
       </el-row>

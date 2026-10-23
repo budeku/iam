@@ -9,6 +9,7 @@ export interface KeypairListReq extends Pagination {
 export interface KeypairListItemResp {
   id: number
   app_id: number
+  app_name: string
   kid: string
   algorithm: string
   status: string
@@ -22,6 +23,7 @@ export function keypairList(params: KeypairListReq) {
 export interface KeypairInfoResp {
   id: number
   app_id: number
+  app_name: string
   kid: string
   algorithm: string
   public_key: string

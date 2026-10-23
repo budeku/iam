@@ -15,8 +15,6 @@ const {
   total,
   listData,
   query,
-  fetchAppOptions,
-  getAppName,
   changePage,
   changePageSize,
   add,
@@ -49,7 +47,6 @@ async function handleFormSubmit(payload: KeypairCreateReq) {
 }
 
 query()
-fetchAppOptions()
 </script>
 
 <template>
@@ -76,12 +73,7 @@ fetchAppOptions()
           width="70"
         />
 
-        <el-table-column :label="t('keypair.field.appId')" min-width="100">
-          <template #default="scope">
-            {{ getAppName(toRow(scope.row).app_id) }}
-          </template>
-        </el-table-column>
-
+        <el-table-column :label="t('keypair.field.appName')" prop="app_name" min-width="100" />
         <el-table-column :label="t('keypair.field.kid')" prop="kid" min-width="200" />
         <el-table-column :label="t('keypair.field.algorithm')" min-width="100">
           <template #default="scope">

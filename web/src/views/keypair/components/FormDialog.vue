@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { KeypairCreateReq } from '@/api/modules/keypair'
@@ -17,7 +17,7 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const form = reactive<KeypairCreateReq>({
-  app_id: 1,
+  app_id: undefined as unknown as number,
   algorithm: '',
   status: '',
 })
@@ -26,10 +26,61 @@ onMounted(() => {
   fetchAppOptions()
 })
 
+watch(
+  appOptionData,
+  apps => {
+    const first = apps?.[0]
+    if (first && !form.app_id) {
+      form.app_id = first.id
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  algorithmData,
+  algos => {
+    const first = algos?.[0]
+    if (first && !form.algorithm) {
+      form.algorithm = first.label
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  statusData,
+  statuses => {
+    const first = statuses?.[0]
+    if (first && !form.status) {
+      form.status = first.label
+    }
+  },
+  { immediate: true }
+)
+
 function resetForm() {
-  form.app_id = 1
-  form.algorithm = ''
-  form.status = ''
+  const firstApp = appOptionData.value?.[0]
+  if (firstApp) {
+    form.app_id = firstApp.id
+  } else {
+    form.app_id = undefined as unknown as number
+  }
+
+  const firstAlgo = algorithmData.value?.[0]
+  if (firstAlgo) {
+    form.algorithm = firstAlgo.label
+  } else {
+    form.algorithm = ''
+  }
+
+  const firstStatus = statusData.value?.[0]
+  if (firstStatus) {
+    form.status = firstStatus.label
+  } else {
+    form.status = ''
+  }
+
   formRef.value?.clearValidate()
 }
 

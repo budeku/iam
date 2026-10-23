@@ -7,6 +7,7 @@ export default {
     retireAt: '停用时间',
     createdAt: '创建时间',
     appId: '应用',
+    appName: '应用',
     publicKey: '公钥',
     privateKey: '私钥',
   },
