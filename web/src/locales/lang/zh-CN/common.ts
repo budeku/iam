@@ -18,4 +18,5 @@ export default {
   warning: '提示',
   select: '请选择',
   searchPlaceholder: '请输入搜索内容',
+  networkError: '网络连接异常，请检查网络',
 }

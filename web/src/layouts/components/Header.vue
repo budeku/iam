@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { logout } from '@/api/modules/user'
 import { SUPPORTED_LOCALES, type SupportedLocale } from '@/locales'
 import { useLocaleStore } from '@/stores/locale'
 import { useThemeStore } from '@/stores/theme'
+import { useUserStore } from '@/stores/user'
 import { ElMessageBox } from 'element-plus'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -20,6 +22,7 @@ const router = useRouter()
 const { t } = useI18n()
 const localeStore = useLocaleStore()
 const themeStore = useThemeStore()
+const userStore = useUserStore()
 
 const isFullscreen = ref(false)
 
@@ -48,7 +51,7 @@ function toggleFullscreen() {
         isFullscreen.value = true
       })
       .catch(err => {
-        ElMessage.error(`Error entering fullscreen: ${err.message}`)
+        ElMessage.error(err.message)
       })
   } else {
     document.exitFullscreen()
@@ -63,6 +66,10 @@ async function handleLogout() {
       cancelButtonText: t('common.cancel'),
       type: 'warning',
     })
+
+    await logout()
+
+    userStore.clearMe()
 
     ElMessage.success(t('layout.logoutSuccess'))
     router.push('/login')

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useUserStore } from '@/stores/user'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -10,6 +11,7 @@ defineProps<{ collapsed: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const userStore = useUserStore()
 
 const menuRoutes = computed<RouteRecordRaw[]>(() => {
   const layoutRoute = router.options.routes.find(r => r.path === '/')
@@ -17,6 +19,10 @@ const menuRoutes = computed<RouteRecordRaw[]>(() => {
   return children.filter(r => {
     if (r.meta?.public || r.meta?.hidden) {
       return false
+    }
+
+    if (!userStore.isSuperAdmin) {
+      return r.path === 'dashboard' || r.name === 'dashboard'
     }
 
     return true
