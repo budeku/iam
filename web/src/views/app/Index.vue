@@ -63,7 +63,7 @@ query()
 </script>
 
 <template>
-  <div class="application-list-view">
+  <div class="app-list-view">
     <el-card shadow="never">
       <div class="toolbar">
         <div class="toolbar-left">
@@ -149,7 +149,7 @@ query()
 </template>
 
 <style scoped lang="scss">
-.application-list-view {
+.app-list-view {
   padding: 20px;
 
   .toolbar {

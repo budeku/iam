@@ -112,6 +112,7 @@ export function useApp() {
       return
     }
 
+    loading.value = true
     try {
       const { data } = await appDelete(row.id)
       if (data.status) {
@@ -125,10 +126,13 @@ export function useApp() {
       }
     } catch (error) {
       reportError(error)
+    } finally {
+      loading.value = false
     }
   }
 
   async function editStatus(id: number, status: boolean) {
+    loading.value = true
     try {
       const { data } = await appUpdateStatus(id, { status })
       if (data.status) {
@@ -141,6 +145,8 @@ export function useApp() {
     } catch (error) {
       reportError(error)
       return false
+    } finally {
+      loading.value = false
     }
   }
 

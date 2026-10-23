@@ -18,6 +18,15 @@ export function appList(params: AppListReq) {
   return request.get<ApiResponse<ListResp<AppListItemResp>>>('/apps', { params: params })
 }
 
+export interface AppOptionItemResp {
+  id: number
+  name: string
+}
+
+export function appOptions() {
+  return request.get<ApiResponse<AppOptionItemResp[]>>('/apps/options')
+}
+
 export interface AppInfoResp {
   id: number
   name: string

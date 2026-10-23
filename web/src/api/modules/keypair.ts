@@ -1,6 +1,6 @@
 import request from '../index'
 import type { Pagination } from './request'
-import type { ApiResponse, ListResp } from './response'
+import type { ApiResponse, ListResp, StatusOption } from './response'
 
 export interface KeypairListReq extends Pagination {
   _brand?: never
@@ -13,7 +13,6 @@ export interface KeypairListItemResp {
   algorithm: string
   status: string
   activated_at: string
-  created_at: string
 }
 
 export function keypairList(params: KeypairListReq) {
@@ -54,4 +53,12 @@ export function keypairDowngrade(id: number) {
 
 export function keypairRetire(id: number) {
   return request.put<ApiResponse>(`/keypairs/${id}/retire`)
+}
+
+export function keypairStatusOptions() {
+  return request.get<ApiResponse<StatusOption[]>>('/keypairs/status-options')
+}
+
+export function keypairAlgorithmOptions() {
+  return request.get<ApiResponse<StatusOption[]>>('/keypairs/algorithm-options')
 }
