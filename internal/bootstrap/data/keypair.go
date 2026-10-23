@@ -17,10 +17,10 @@ import (
 )
 
 func initKeypair(ctx context.Context, kpStore *store.KeypairStore, result *Result) error {
-	if _, err := kpStore.GetIAMKeypair(ctx); err == nil {
+	if kp, err := kpStore.GetIAMKeypair(ctx); err == nil && kp != nil {
+		result.KeypairCreated = false
+		result.KeypairKid = kp.Kid.String()
 		return nil
-	} else if !db.IsNotFound(err) {
-		return err
 	}
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -55,7 +55,18 @@ func initKeypair(ctx context.Context, kpStore *store.KeypairStore, result *Resul
 	encryptedPrivBase64 := base64.StdEncoding.EncodeToString(encryptedBytes)
 
 	kid := uuid.New()
-	if _, err := kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, encryptedPrivBase64); err != nil {
+
+	_, err = kpStore.InitIAMKeypair(ctx, kid, enum.KeypairAlgoRS256, pubPEM, encryptedPrivBase64)
+	if err != nil {
+		if db.IsConstraintError(err) {
+			existingKp, getErr := kpStore.GetIAMKeypair(ctx)
+			if getErr != nil {
+				return getErr
+			}
+			result.KeypairCreated = false
+			result.KeypairKid = existingKp.Kid.String()
+			return nil
+		}
 		return err
 	}
 
