@@ -30,10 +30,14 @@ type RefreshTokenGetResp struct {
 	RevokedAt *time.Time
 	ExpiresAt time.Time
 	CreatedAt time.Time
+
+	Session *SessionGetResp
+	User    *UserGetResp
 }
 
 type RefreshTokenStore interface {
 	GetByIdentity(ctx context.Context, identity []byte) (*RefreshTokenGetResp, error)
+	GetByIdentityWithEdges(ctx context.Context, identity []byte) (*RefreshTokenGetResp, error)
 
 	Create(ctx context.Context, body RefreshTokenCommand) (*RefreshTokenCreateResp, error)
 

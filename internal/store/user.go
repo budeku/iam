@@ -3,6 +3,7 @@ package store
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/refreshtoken"
 	"budeku/iam/internal/infra/ent/db/user"
 	"context"
 	"time"
@@ -147,6 +148,17 @@ func (s *UserStore) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*biz.Use
 	}
 
 	return toUserGetResp(info), nil
+}
+
+func (s *UserStore) GetUsersWithActiveTokens(ctx context.Context) ([]*db.User, error) {
+	return s.Client(ctx).User.Query().
+		Where(
+			user.HasRefreshTokensWith(
+				refreshtoken.RevokedAtIsNil(),
+				refreshtoken.ExpiresAtGT(time.Now()),
+			),
+		).
+		All(ctx)
 }
 
 func (s *UserStore) UpdateLastLogin(ctx context.Context, id int, t time.Time) error {

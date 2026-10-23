@@ -33,6 +33,36 @@ func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) 
 	return toRefreshTokenGetResp(info), nil
 }
 
+func (s *RefreshTokenStore) GetByIdentityWithEdges(ctx context.Context, identity []byte) (*biz.RefreshTokenGetResp, error) {
+	info, err := s.Client(ctx).RefreshToken.Query().
+		Where(refreshtoken.IdentityEQ(identity)).
+		WithSession(func(q *db.SessionQuery) {
+			q.WithUser()
+		}).
+		Only(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, biz.ErrNotFound
+		}
+		return nil, err
+	}
+
+	resp := toRefreshTokenGetResp(info)
+
+	if info.Edges.Session != nil {
+		sessionResp := toSessionGetResp(info.Edges.Session)
+
+		if info.Edges.Session.Edges.User != nil {
+			sessionResp.User = toUserGetResp(info.Edges.Session.Edges.User)
+		}
+
+		resp.Session = sessionResp
+	}
+
+	return resp, nil
+}
+
 func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCommand) (*biz.RefreshTokenCreateResp, error) {
 	info, err := s.Client(ctx).RefreshToken.Create().
 		SetAppID(body.AppID).
@@ -48,6 +78,17 @@ func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCom
 	}
 
 	return toRefreshTokenCreateResp(info), nil
+}
+
+func (s *RefreshTokenStore) CreateWithEdges(ctx context.Context, body biz.RefreshTokenCommand) (*db.RefreshToken, error) {
+	return s.Client(ctx).RefreshToken.Create().
+		SetAppID(body.AppID).
+		SetIdentity(body.Identity).
+		SetJti(body.Jti).
+		SetExpiresAt(body.ExpiresAt).
+		SetSessionID(body.SessionID).
+		SetUserID(body.UserID).
+		Save(ctx)
 }
 
 func (s *RefreshTokenStore) RevokeByID(ctx context.Context, id int) error {

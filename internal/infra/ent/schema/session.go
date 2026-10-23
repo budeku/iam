@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -96,5 +97,16 @@ func (Session) Fields() []ent.Field {
 
 // Edges of the Session.
 func (Session) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		// 多会话属于一个用户
+		edge.From("user", User.Type).
+			Ref("sessions").
+			Unique().
+			Required().
+			Field("user_id").
+			Immutable(),
+
+		// 一个会话可以有多个刷新令牌
+		edge.To("refresh_tokens", RefreshToken.Type),
+	}
 }

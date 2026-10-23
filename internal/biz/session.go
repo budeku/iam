@@ -24,18 +24,22 @@ type SessionCreateResp struct {
 }
 
 type SessionGetResp struct {
-	ID              int
-	Identity        uuid.UUID
-	AppID           int
-	UserID          int
-	IP              string
-	UserAgent       string
-	AuthMethod      enum.SessionAuthMethod
-	AuthenticatedAt time.Time
-	LastActiveAt    time.Time
-	RevokedAt       *time.Time
-	ExpiresAt       time.Time
-	CreatedAt       time.Time
+	ID              int                    `json:"id"`
+	Identity        uuid.UUID              `json:"identity"`
+	AppID           int                    `json:"app_id"`
+	UserID          int                    `json:"user_id"`
+	IP              string                 `json:"ip"`
+	UserAgent       string                 `json:"user_agent"`
+	AuthMethod      enum.SessionAuthMethod `json:"auth_method"`
+	AuthenticatedAt time.Time              `json:"authenticated_at"`
+	LastActiveAt    time.Time              `json:"last_active_at"`
+	RevokedAt       *time.Time             `json:"revoked_at"`
+	ExpiresAt       time.Time              `json:"expires_at"`
+	CreatedAt       time.Time              `json:"created_at"`
+
+	// 关联
+	User          *UserGetResp          `json:"user,omitempty"`
+	RefreshTokens []RefreshTokenGetResp `json:"refresh_tokens,omitempty"`
 }
 
 type SessionStore interface {

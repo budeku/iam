@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -81,5 +82,21 @@ func (RefreshToken) Fields() []ent.Field {
 
 // Edges of the RefreshToken.
 func (RefreshToken) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		// 多个刷新令牌属于一个会话
+		edge.From("session", Session.Type).
+			Ref("refresh_tokens").
+			Unique().
+			Required().
+			Field("session_id").
+			Immutable(),
+
+		// 多个刷新令牌属于一个用户
+		edge.From("user", User.Type).
+			Ref("refresh_tokens").
+			Unique().
+			Required().
+			Field("user_id").
+			Immutable(),
+	}
 }

@@ -3,7 +3,9 @@ package store
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/refreshtoken"
 	"budeku/iam/internal/infra/ent/db/session"
+	"budeku/iam/internal/infra/ent/db/user"
 	"context"
 	"time"
 
@@ -23,6 +25,12 @@ func NewSessionStore(client *db.Client) *SessionStore {
 func (s *SessionStore) Get(ctx context.Context, id int) (*biz.SessionGetResp, error) {
 	info, err := s.Client(ctx).Session.Query().
 		Where(session.IDEQ(id)).
+		WithUser(func(query *db.UserQuery) {
+			query.Select(user.FieldID, user.FieldUsername, user.FieldEmail)
+		}).
+		WithRefreshTokens(func(query *db.RefreshTokenQuery) {
+			query.Where(refreshtoken.RevokedAtIsNil())
+		}).
 		Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -32,6 +40,17 @@ func (s *SessionStore) Get(ctx context.Context, id int) (*biz.SessionGetResp, er
 	}
 
 	return toSessionGetResp(info), nil
+}
+
+func (s *SessionStore) GetActiveSessionsByUser(ctx context.Context, userID int, appID int) ([]*db.Session, error) {
+	return s.Client(ctx).Session.Query().
+		Where(
+			session.UserIDEQ(userID),
+			session.AppIDEQ(appID),
+			session.RevokedAtIsNil(),
+			session.HasUserWith(user.StatusEQ(true)),
+		).
+		All(ctx)
 }
 
 func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*biz.SessionCreateResp, error) {

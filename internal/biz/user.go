@@ -97,24 +97,10 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 	sessionExpiresAt := now.Add(jwtCfg.SessionTTL)
 
 	var refreshTokenPlain string
-	var sessionID int
+	var accessToken string
 	sessionIdentity := uuid.New()
 
-	accessToken, err := b.signer.SignAccessToken(
-		ctx,
-		info.UUID,
-		sessionIdentity,
-		info.Username,
-		conf.IAMAppID,
-		jwtCfg.AccessTokenTTL,
-		ip,
-		userAgent,
-	)
-	if err != nil {
-		logger.Error("签发 AccessToken 失败：%s", err)
-		return nil, errors.New("登录失败")
-	}
-
+	// 更新最后登录时间、创建会话、创建 RefreshToken、签发 AccessToken
 	err = b.tx.WithTx(ctx, func(ctx context.Context) error {
 		if err := b.store.UpdateLastLogin(ctx, info.ID, now); err != nil {
 			return err
@@ -133,9 +119,24 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 		if err != nil {
 			return err
 		}
-		sessionID = sessionResp.ID
+		sessionID := sessionResp.ID
 
 		refreshTokenPlain, err = b.createRefreshTokenInTx(ctx, info.ID, conf.IAMAppID, sessionID, refreshTokenExpiresAt)
+		if err != nil {
+			return err
+		}
+
+		// 生成时也会操作数据库，这里放在事务中
+		accessToken, err = b.signer.SignAccessToken(
+			ctx,
+			info.UUID,
+			sessionIdentity,
+			info.Username,
+			conf.IAMAppID,
+			jwtCfg.AccessTokenTTL,
+			ip,
+			userAgent,
+		)
 		if err != nil {
 			return err
 		}
@@ -150,9 +151,11 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 
 	// 令牌保存到缓存中
 	if err := b.authToken.SetAccess(ctx, sessionIdentity, jwtCfg.AccessTokenTTL); err != nil {
+		logger.Error("设置 Redis AccessToken 缓存失败：%s", err)
 		return nil, errors.New("登录异常")
 	}
 	if err := b.authToken.SetRefresh(ctx, sessionIdentity, jwtCfg.RefreshTokenTTL); err != nil {
+		logger.Error("设置 Redis RefreshToken 缓存失败：%s", err)
 		return nil, errors.New("登录异常")
 	}
 
@@ -226,8 +229,7 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 	now := time.Now()
 
 	err := b.tx.WithTx(ctx, func(ctx context.Context) error {
-		// 查询旧的 RefreshToken 记录
-		oldRt, err := b.refreshTokenStore.GetByIdentity(ctx, oldIdentity)
+		oldRt, err := b.refreshTokenStore.GetByIdentityWithEdges(ctx, oldIdentity)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				return errors.New("无效的刷新令牌")
@@ -248,13 +250,9 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 			return errors.New("检测到安全风险，会话已被强制终止，请重新登录")
 		}
 
-		// 查询关联的 Session 信息
-		sessionInfo, err := b.sessionStore.Get(ctx, oldRt.SessionID)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				return errors.New("关联的会话不存在")
-			}
-			return err
+		sessionInfo := oldRt.Session
+		if sessionInfo == nil {
+			return errors.New("关联的会话不存在")
 		}
 
 		// 检查 Session 是否已被吊销
@@ -262,31 +260,27 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 			return errors.New("会话已被吊销，请重新登录")
 		}
 
-		// 检查 Session 是否超过了绝对生命周期上限 (SessionTTL / ExpiresAt)
+		// 检查 Session 是否超过了绝对生命周期上限
 		if now.After(sessionInfo.ExpiresAt) {
 			return errors.New("会话已过绝对生命周期，请重新登录")
 		}
 
-		// 用户信息
-		userInfo, err := b.store.Get(ctx, sessionInfo.UserID)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				return errors.New("关联的用户不存在或已被删除")
-			}
-			return err
+		userInfo := sessionInfo.User
+		if userInfo == nil {
+			return errors.New("关联的用户不存在或已被删除")
 		}
 
-		// 如果用户被禁用了，在刷新令牌时也要拒绝
+		// 如果用户被禁用了，拒绝刷新
 		if !userInfo.Status {
 			return errors.New("账号已被禁用")
 		}
 
-		// 吊销当前的旧 Refresh Token (用过即作废)
+		// 吊销当前的旧 Refresh Token
 		if err := b.refreshTokenStore.RevokeByID(ctx, oldRt.ID); err != nil {
 			return err
 		}
 
-		// 更新 Session 的最后活跃时间
+		// 更新 Session 最后活跃时间
 		if err := b.sessionStore.UpdateLastActive(ctx, sessionInfo.ID, now); err != nil {
 			return err
 		}
@@ -298,7 +292,7 @@ func (b *UserBiz) RefreshToken(ctx context.Context, oldRefreshTokenPlain string)
 		}
 
 		sessionIdentity = sessionInfo.Identity
-		newRefreshTokenPlain, err = b.createRefreshTokenInTx(ctx, sessionInfo.UserID, sessionInfo.AppID, sessionInfo.ID, refreshTokenExpiresAt)
+		newRefreshTokenPlain, err = b.createRefreshTokenInTx(ctx, userInfo.ID, sessionInfo.AppID, sessionInfo.ID, refreshTokenExpiresAt)
 		if err != nil {
 			return err
 		}
@@ -357,6 +351,8 @@ func (b *UserBiz) Me(ctx context.Context, userUUID uuid.UUID) (*UserMeResp, erro
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrNotFound
 		}
+		logger.Error("获取当前用户信息失败: %v", err)
+		return nil, err
 	}
 
 	return &UserMeResp{

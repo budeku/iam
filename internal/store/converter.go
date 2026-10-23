@@ -37,7 +37,7 @@ func toSessionGetResp(info *db.Session) *biz.SessionGetResp {
 		return nil
 	}
 
-	return &biz.SessionGetResp{
+	resp := &biz.SessionGetResp{
 		ID:              info.ID,
 		Identity:        info.Identity,
 		AppID:           info.AppID,
@@ -51,6 +51,22 @@ func toSessionGetResp(info *db.Session) *biz.SessionGetResp {
 		ExpiresAt:       info.ExpiresAt,
 		CreatedAt:       info.CreatedAt,
 	}
+
+	// 查询时没有加 WithUser，这里会是 nil
+	if info.Edges.User != nil {
+		resp.User = toUserGetResp(info.Edges.User)
+	}
+
+	// 询时没有加 WithRefreshTokens，这里长度为 0
+	if len(info.Edges.RefreshTokens) > 0 {
+		tokens := make([]biz.RefreshTokenGetResp, len(info.Edges.RefreshTokens))
+		for i, t := range info.Edges.RefreshTokens {
+			tokens[i] = *toRefreshTokenGetResp(t)
+		}
+		resp.RefreshTokens = tokens
+	}
+
+	return resp
 }
 
 func toRefreshTokenGetResp(info *db.RefreshToken) *biz.RefreshTokenGetResp {

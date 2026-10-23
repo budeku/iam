@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -79,5 +80,11 @@ func (User) Mixin() []ent.Mixin {
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		// 一个用户可以有多个会话
+		edge.To("sessions", Session.Type),
+
+		// 一个用户可以有多个刷新令牌
+		edge.To("refresh_tokens", RefreshToken.Type),
+	}
 }
