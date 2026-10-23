@@ -137,3 +137,11 @@ func (h *KeypairHandler) Retire(c *gin.Context) {
 
 	response.OK(c)
 }
+
+func (h *KeypairHandler) StatusOptions(c *gin.Context) {
+	response.Success(c, enum.KeypairStatusOptions())
+}
+
+func (h *KeypairHandler) AlgorithmOptions(c *gin.Context) {
+	response.Success(c, enum.KeypairAlgorithmOptions())
+}

@@ -67,5 +67,7 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 		admin.GET("/keypairs/:id", app.Keypair.Info)
 		admin.PUT("/keypairs/:id/downgrade", app.Keypair.Downgrade)
 		admin.PUT("/keypairs/:id/retire", app.Keypair.Retire)
+		admin.GET("/keypairs/status-options", app.Keypair.StatusOptions)
+		admin.GET("/keypairs/algorithm-options", app.Keypair.AlgorithmOptions)
 	}
 }
