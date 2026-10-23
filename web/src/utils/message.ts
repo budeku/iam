@@ -41,15 +41,15 @@ const { t } = i18n.global
 
 export const message = {
   success(msg?: string, options?: MessageConfig) {
-    return show('success', msg || t('operationSuccess'), options)
+    return show('success', msg || t('common.operationSuccess'), options)
   },
 
   error(msg?: string, options?: MessageConfig) {
-    return show('error', msg || t('operationFailed'), options)
+    return show('error', msg || t('common.operationFailed'), options)
   },
 
   warning(msg?: string, options?: MessageConfig) {
-    return show('warning', msg || t('warning'), options)
+    return show('warning', msg || t('common.warning'), options)
   },
 
   info(msg?: string, options?: MessageConfig) {
@@ -57,7 +57,7 @@ export const message = {
   },
 
   networkError(options?: MessageConfig) {
-    return show('error', t('networkError'), options)
+    return show('error', t('common.networkError'), options)
   },
 }
 
@@ -78,7 +78,7 @@ export function reportError(error: unknown, fallbackMsg?: string) {
       return
     }
 
-    message.error(fallbackMsg || t('operationFailed'))
+    message.error(fallbackMsg || t('common.operationFailed'))
     return
   }
 
@@ -87,7 +87,7 @@ export function reportError(error: unknown, fallbackMsg?: string) {
     return
   }
 
-  message.error(fallbackMsg || t('operationFailed'))
+  message.error(fallbackMsg || t('common.operationFailed'))
 }
 
 export default message

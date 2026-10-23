@@ -3,7 +3,7 @@ import type { Pagination } from './request'
 import type { ApiResponse, ListResp } from './response'
 
 export interface AppListReq extends Pagination {
-  keywords?: string
+  keyword?: string
 }
 
 export interface AppListItemResp {
@@ -11,7 +11,6 @@ export interface AppListItemResp {
   name: string
   client_id: string
   status: boolean
-  is_system: boolean
   created_at: string
 }
 
@@ -25,7 +24,6 @@ export interface AppInfoResp {
   client_id: string
   redirect_uris: string[]
   status: boolean
-  is_system: boolean
   created_at: string
   updated_at: string
 }

@@ -1,3 +1,4 @@
+import app from './app'
 import common from './common'
 import dashboard from './dashboard'
 import layout from './layout'
@@ -8,4 +9,5 @@ export default {
   layout,
   dashboard,
   login,
+  app,
 }

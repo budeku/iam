@@ -33,5 +33,9 @@ function toggleCollapse() {
 .admin-container {
   flex-direction: column;
   height: 100vh;
+
+  .el-main {
+    padding: 0;
+  }
 }
 </style>
