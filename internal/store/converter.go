@@ -168,7 +168,6 @@ func toAppList(list []*db.App) []biz.AppListItemResp {
 			Name:      v.Name,
 			ClientID:  v.ClientID,
 			Status:    v.Status,
-			IsSystem:  v.IsSystem,
 			CreatedAt: v.CreatedAt,
 		})
 	}
@@ -187,7 +186,6 @@ func toAppInfo(info *db.App) *biz.AppGetResp {
 		ClientID:     info.ClientID,
 		RedirectUris: info.RedirectUris,
 		Status:       info.Status,
-		IsSystem:     info.IsSystem,
 		CreatedAt:    info.CreatedAt,
 		UpdatedAt:    info.UpdatedAt,
 	}

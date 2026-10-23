@@ -44,10 +44,6 @@ func (App) Fields() []ent.Field {
 
 		field.Bool("status").
 			Default(false),
-
-		field.Bool("is_system").
-			Immutable().
-			Default(false),
 	}
 }
 

@@ -26,7 +26,6 @@ func appListFields() []string {
 		app.FieldName,
 		app.FieldClientID,
 		app.FieldStatus,
-		app.FieldIsSystem,
 		app.FieldCreatedAt,
 	}
 }

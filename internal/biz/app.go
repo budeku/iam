@@ -14,7 +14,6 @@ type AppListItemResp struct {
 	Name      string    `json:"name"`
 	ClientID  uuid.UUID `json:"client_id"`
 	Status    bool      `json:"status"`
-	IsSystem  bool      `json:"is_system"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -24,7 +23,6 @@ type AppGetResp struct {
 	ClientID     uuid.UUID `json:"client_id"`
 	RedirectUris []string  `json:"redirect_uris"`
 	Status       bool      `json:"status"`
-	IsSystem     bool      `json:"is_system"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
