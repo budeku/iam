@@ -2,9 +2,9 @@ package store
 
 import (
 	"budeku/iam/internal/biz"
-	"budeku/iam/internal/conf"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/app"
 	"budeku/iam/internal/infra/ent/db/keypair"
 	"context"
 	"errors"
@@ -24,22 +24,21 @@ func NewKeypairStore(client *db.Client) *KeypairStore {
 	return &KeypairStore{baseStore: newBaseStore(client)}
 }
 
-func (s *KeypairStore) GetIAMKeypair(ctx context.Context) (*db.Keypair, error) {
-	kp, err := s.Client(ctx).Keypair.Query().
+func (s *KeypairStore) GetIAMKeypair(ctx context.Context) (*biz.KeypairGetResp, error) {
+	info, err := s.Client(ctx).Keypair.Query().
 		Where(
 			keypair.StatusEQ(enum.KeypairStatusActive),
-			keypair.AppIDEQ(conf.IAMAppID),
+			keypair.AppIDIsNil(),
 		).
 		Only(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return kp, nil
+	return toKeypairGetResp(info), nil
 }
 
-func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algorithm enum.KeypairAlgorithm, publicKey, privateKey string) (*db.Keypair, error) {
-	kp, err := s.Client(ctx).Keypair.Create().
-		SetAppID(conf.IAMAppID).
+func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algorithm enum.KeypairAlgorithm, publicKey, privateKey string) (*biz.KeypairGetResp, error) {
+	info, err := s.Client(ctx).Keypair.Create().
 		SetKid(kid).
 		SetAlgorithm(algorithm).
 		SetPublicKey(publicKey).
@@ -49,13 +48,12 @@ func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algori
 	if err != nil {
 		return nil, err
 	}
-	return kp, nil
+	return toKeypairGetResp(info), nil
 }
 
 func keypairListFields() []string {
 	return []string{
 		keypair.FieldID,
-		keypair.FieldAppID,
 		keypair.FieldKid,
 		keypair.FieldAlgorithm,
 		keypair.FieldStatus,
@@ -80,6 +78,9 @@ func (s *KeypairStore) List(ctx context.Context, page, perPage int) ([]biz.Keypa
 	list, err := q.
 		Order(db.Desc(keypair.FieldID)).
 		Select(keypairListFields()...).
+		WithApp(func(query *db.AppQuery) {
+			query.Select(app.FieldID, app.FieldName)
+		}).
 		Offset(offset).
 		Limit(limit).
 		All(ctx)
@@ -93,6 +94,9 @@ func (s *KeypairStore) List(ctx context.Context, page, perPage int) ([]biz.Keypa
 func (s *KeypairStore) Get(ctx context.Context, id int) (*biz.KeypairGetResp, error) {
 	info, err := s.Client(ctx).Keypair.Query().
 		Where(keypair.IDEQ(id)).
+		WithApp(func(query *db.AppQuery) {
+			query.Select(app.FieldID, app.FieldName)
+		}).
 		Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -107,9 +111,10 @@ func (s *KeypairStore) Get(ctx context.Context, id int) (*biz.KeypairGetResp, er
 func (s *KeypairStore) GetByAppID(ctx context.Context, appID int) (*biz.KeypairGetResp, error) {
 	info, err := s.Client(ctx).Keypair.Query().
 		Where(
-			keypair.AppID(appID),
+			keypair.HasAppWith(app.IDEQ(appID)),
 			keypair.Status(enum.KeypairStatusActive),
 		).
+		WithApp().
 		Order(db.Desc(keypair.FieldActivatedAt)).
 		First(ctx)
 	if err != nil {
@@ -128,6 +133,7 @@ func (s *KeypairStore) GetByKid(ctx context.Context, kid uuid.UUID) (*biz.Keypai
 			keypair.Kid(kid),
 			keypair.StatusIn(enum.KeypairStatusActive, enum.KeypairStatusGrace),
 		).
+		WithApp().
 		First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -142,9 +148,10 @@ func (s *KeypairStore) GetByKid(ctx context.Context, kid uuid.UUID) (*biz.Keypai
 func (s *KeypairStore) GetAllValidByAppID(ctx context.Context, appID int) ([]biz.KeypairGetResp, error) {
 	list, err := s.Client(ctx).Keypair.Query().
 		Where(
-			keypair.AppIDEQ(appID),
+			keypair.HasAppWith(app.IDEQ(appID)),
 			keypair.StatusIn(enum.KeypairStatusActive, enum.KeypairStatusGrace),
 		).
+		WithApp().
 		All(ctx)
 	if err != nil {
 		return nil, err
@@ -161,14 +168,18 @@ func (s *KeypairStore) Create(
 	status enum.KeypairStatus,
 	publicKey, privateKey string,
 ) (*biz.KeypairCreateResp, error) {
-	info, err := s.Client(ctx).Keypair.Create().
-		SetAppID(appID).
+	query := s.Client(ctx).Keypair.Create().
 		SetKid(kid).
 		SetAlgorithm(algorithm).
 		SetPublicKey(publicKey).
 		SetPrivateKey(privateKey).
-		SetStatus(status).
-		Save(ctx)
+		SetStatus(status)
+
+	if appID > 0 {
+		query.SetAppID(appID)
+	}
+
+	info, err := query.Save(ctx)
 	if err != nil {
 		return nil, err
 	}

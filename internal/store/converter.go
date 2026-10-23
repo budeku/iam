@@ -85,9 +85,8 @@ func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
 		return nil
 	}
 
-	return &biz.KeypairGetResp{
+	resp := &biz.KeypairGetResp{
 		ID:          info.ID,
-		AppID:       info.AppID,
 		Kid:         info.Kid,
 		Algorithm:   info.Algorithm,
 		PublicKey:   info.PublicKey,
@@ -98,6 +97,14 @@ func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
 		CreatedAt:   info.CreatedAt,
 		UpdatedAt:   info.UpdatedAt,
 	}
+
+	// 查询时加了 WithApp()
+	if info.Edges.App != nil {
+		resp.AppID = info.Edges.App.ID
+		resp.AppName = info.Edges.App.Name
+	}
+
+	return resp
 }
 
 func toKeypairGetAllResp(list []*db.Keypair) []biz.KeypairGetResp {
@@ -107,9 +114,8 @@ func toKeypairGetAllResp(list []*db.Keypair) []biz.KeypairGetResp {
 
 	res := make([]biz.KeypairGetResp, 0, len(list))
 	for _, v := range list {
-		res = append(res, biz.KeypairGetResp{
+		item := biz.KeypairGetResp{
 			ID:          v.ID,
-			AppID:       v.AppID,
 			Kid:         v.Kid,
 			Algorithm:   v.Algorithm,
 			PublicKey:   v.PublicKey,
@@ -119,7 +125,12 @@ func toKeypairGetAllResp(list []*db.Keypair) []biz.KeypairGetResp {
 			RetireAt:    v.RetireAt,
 			CreatedAt:   v.CreatedAt,
 			UpdatedAt:   v.UpdatedAt,
-		})
+		}
+		if v.Edges.App != nil {
+			item.AppID = v.Edges.App.ID
+			item.AppName = v.Edges.App.Name
+		}
+		res = append(res, item)
 	}
 
 	return res
@@ -132,14 +143,20 @@ func toKeypairList(list []*db.Keypair) []biz.KeypairListItemResp {
 
 	res := make([]biz.KeypairListItemResp, 0, len(list))
 	for _, v := range list {
-		res = append(res, biz.KeypairListItemResp{
+		item := biz.KeypairListItemResp{
 			ID:          v.ID,
-			AppID:       v.AppID,
 			Kid:         v.Kid,
 			Algorithm:   v.Algorithm,
 			Status:      v.Status,
 			ActivatedAt: v.ActivatedAt,
-		})
+		}
+
+		if v.Edges.App != nil {
+			item.AppID = v.Edges.App.ID
+			item.AppName = v.Edges.App.Name
+		}
+
+		res = append(res, item)
 	}
 
 	return res

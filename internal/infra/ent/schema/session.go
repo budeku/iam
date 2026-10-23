@@ -36,9 +36,11 @@ func (Session) Fields() []ent.Field {
 			Immutable().
 			Unique(),
 
-		field.Int("app_id"),
+		field.Int("app_id").
+			Immutable(),
 
-		field.Int("user_id"),
+		field.Int("user_id").
+			Immutable(),
 
 		field.String("ip").
 			MaxLen(45).

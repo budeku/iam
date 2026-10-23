@@ -41,7 +41,7 @@ func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*bi
 		SetUserID(body.UserID).
 		SetIP(body.IP).
 		SetUserAgent(body.UserAgent).
-		SetAuthMethod(body.AuthMedhod).
+		SetAuthMethod(body.AuthMethod).
 		SetAuthenticatedAt(body.AuthenticatedAt).
 		SetExpiresAt(body.ExpiresAt).
 		Save(ctx)

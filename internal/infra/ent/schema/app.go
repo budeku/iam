@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -56,5 +57,8 @@ func (App) Mixin() []ent.Mixin {
 
 // Edges of the App.
 func (App) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		// 一个应用可以有多个密钥对
+		edge.To("keypairs", Keypair.Type),
+	}
 }

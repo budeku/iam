@@ -23,6 +23,7 @@ import (
 type KeypairGetResp struct {
 	ID          int                   `json:"id"`
 	AppID       int                   `json:"app_id"`
+	AppName     string                `json:"app_name"`
 	Kid         uuid.UUID             `json:"kid"`
 	Algorithm   enum.KeypairAlgorithm `json:"algorithm"`
 	PublicKey   string                `json:"public_key"`
@@ -37,6 +38,7 @@ type KeypairGetResp struct {
 type KeypairListItemResp struct {
 	ID          int                   `json:"id"`
 	AppID       int                   `json:"app_id"`
+	AppName     string                `json:"app_name"`
 	Kid         uuid.UUID             `json:"kid"`
 	Algorithm   enum.KeypairAlgorithm `json:"algorithm"`
 	Status      enum.KeypairStatus    `json:"status"`
@@ -50,6 +52,7 @@ type KeypairCreateResp struct {
 type KeypairStore interface {
 	List(ctx context.Context, page, perPage int) ([]KeypairListItemResp, int, error)
 
+	GetIAMKeypair(ctx context.Context) (*KeypairGetResp, error)
 	Get(ctx context.Context, id int) (*KeypairGetResp, error)
 	GetByAppID(ctx context.Context, appID int) (*KeypairGetResp, error)
 	GetByKid(ctx context.Context, kid uuid.UUID) (*KeypairGetResp, error)

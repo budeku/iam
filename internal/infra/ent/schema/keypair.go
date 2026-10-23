@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 )
@@ -32,7 +33,10 @@ func (Keypair) Annotations() []schema.Annotation {
 // Fields of the Keypair.
 func (Keypair) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("app_id"),
+		field.Int("app_id").
+			Optional().
+			Nillable().
+			Immutable(),
 
 		field.UUID("kid", uuid.UUID{}).
 			Default(uuid.New).
@@ -76,5 +80,11 @@ func (Keypair) Mixin() []ent.Mixin {
 
 // Edges of the Keypair.
 func (Keypair) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("app", App.Type).
+			Ref("keypairs").
+			Unique(). // Many-to-One 关系
+			Field("app_id").
+			Immutable(),
+	}
 }

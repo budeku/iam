@@ -14,7 +14,7 @@ type SessionCommand struct {
 	UserID          int
 	IP              string
 	UserAgent       string
-	AuthMedhod      enum.SessionAuthMethod
+	AuthMethod      enum.SessionAuthMethod
 	AuthenticatedAt time.Time
 	ExpiresAt       time.Time
 }

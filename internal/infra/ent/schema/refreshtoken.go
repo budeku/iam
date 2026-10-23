@@ -30,11 +30,14 @@ func (RefreshToken) Annotations() []schema.Annotation {
 // Fields of the RefreshToken.
 func (RefreshToken) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int("app_id"),
+		field.Int("app_id").
+			Immutable(),
 
-		field.Int("session_id"),
+		field.Int("session_id").
+			Immutable(),
 
-		field.Int("user_id"),
+		field.Int("user_id").
+			Immutable(),
 
 		field.Bytes("identity").
 			Unique().

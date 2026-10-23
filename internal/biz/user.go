@@ -90,11 +90,6 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 		return nil, errors.New("密码错误")
 	}
 
-	if err := b.store.UpdateLastLogin(ctx, info.ID, time.Now()); err != nil {
-		logger.Error("更新登录时间错误：%s", err)
-		return nil, errors.New("登录失败")
-	}
-
 	now := time.Now()
 	jwtCfg := conf.Get().JWT
 	// 刷新令牌和会话的过期时间分别存储，在会话有效期内可以重复刷新，会话过期后需要重新登录，刷新令牌时会话不变
@@ -103,10 +98,27 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 
 	var refreshTokenPlain string
 	var sessionID int
-	var sessionIdentity uuid.UUID
+	sessionIdentity := uuid.New()
+
+	accessToken, err := b.signer.SignAccessToken(
+		ctx,
+		info.UUID,
+		sessionIdentity,
+		info.Username,
+		conf.IAMAppID,
+		jwtCfg.AccessTokenTTL,
+		ip,
+		userAgent,
+	)
+	if err != nil {
+		logger.Error("签发 AccessToken 失败：%s", err)
+		return nil, errors.New("登录失败")
+	}
 
 	err = b.tx.WithTx(ctx, func(ctx context.Context) error {
-		sessionIdentity = uuid.New()
+		if err := b.store.UpdateLastLogin(ctx, info.ID, now); err != nil {
+			return err
+		}
 
 		sessionResp, err := b.sessionStore.Create(ctx, SessionCommand{
 			AppID:           conf.IAMAppID,
@@ -114,7 +126,7 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 			Identity:        sessionIdentity,
 			IP:              ip,
 			UserAgent:       userAgent,
-			AuthMedhod:      enum.SessionAuthMethodPassword,
+			AuthMethod:      enum.SessionAuthMethodPassword,
 			AuthenticatedAt: now,
 			ExpiresAt:       sessionExpiresAt,
 		})
@@ -132,22 +144,7 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 	})
 
 	if err != nil {
-		logger.Error("登录创建会话事务失败：%s", err)
-		return nil, errors.New("登录失败")
-	}
-
-	accessToken, err := b.signer.SignAccessToken(
-		ctx,
-		info.UUID,
-		sessionIdentity,
-		info.Username,
-		conf.IAMAppID,
-		jwtCfg.AccessTokenTTL,
-		ip,
-		userAgent,
-	)
-	if err != nil {
-		logger.Error("签发 AccessToken 失败：%s", err)
+		logger.Error("登录事务执行失败：%s", err)
 		return nil, errors.New("登录失败")
 	}
 

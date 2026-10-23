@@ -61,7 +61,15 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (uuid.UUID, 
 	}
 
 	// 缓存未命中，回源查数据库
-	dbKp, err := p.keypairStore.GetByAppID(ctx, appID)
+	var dbKp *KeypairGetResp
+
+	// TODO: 暂时这样区分下，目前没有好的想法
+	if appID == conf.IAMAppID {
+		dbKp, err = p.keypairStore.GetIAMKeypair(ctx)
+	} else {
+		dbKp, err = p.keypairStore.GetByAppID(ctx, appID)
+	}
+
 	if err != nil {
 		return uuid.Nil, nil, err
 	}
