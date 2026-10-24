@@ -5,6 +5,7 @@ import (
 	"budeku/iam/internal/infra/database"
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/internal/logger"
+	"budeku/iam/internal/store"
 	httpserver "budeku/iam/internal/transport/http"
 	"budeku/iam/internal/transport/http/cookieutil"
 	"budeku/iam/internal/wire"
@@ -13,9 +14,56 @@ import (
 	"context"
 	"log"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
+
+func clean(ctx context.Context, interval time.Duration) {
+	sessionStore := store.NewSessionStore(database.DB())
+
+	go func() {
+		// 用于防止上一次清理还没结束，下一次 ticker 又触发导致任务重叠
+		var running atomic.Int32
+
+		cleanup := func() {
+			// 如果上一次清理还没跑完，直接跳过本次，避免并发冲突
+			if !running.CompareAndSwap(0, 1) {
+				logger.Warn("上一轮会话清理尚未完成，跳过本次触发")
+				return
+			}
+			defer running.Store(0)
+
+			runCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			total, err := sessionStore.ClearExpireOrRevokedAll(runCtx)
+			if err != nil {
+				logger.Error("清理过期/撤销会话失败: %s", err)
+				return
+			}
+			if total > 0 {
+				logger.Info("会话清理完成，清理数量：%d", total)
+			}
+		}
+
+		// 启动时立即执行一次
+		cleanup()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("会话清理调度器已停止")
+				return
+			case <-ticker.C:
+				cleanup()
+			}
+		}
+	}()
+}
 
 func Setup() {
 	if err := conf.Init(); err != nil {
@@ -81,6 +129,8 @@ func Run() {
 		syscall.SIGTERM,
 	)
 	defer stop()
+
+	clean(ctx, 1*time.Hour)
 
 	app := wire.InitApp(database.DB())
 	srv, err := httpserver.New(app)

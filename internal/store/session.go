@@ -8,6 +8,7 @@ import (
 	"budeku/iam/internal/infra/ent/db/session"
 	"budeku/iam/internal/infra/ent/db/user"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -245,4 +246,108 @@ func (s *SessionStore) RevokeByUserID(ctx context.Context, userID int) ([]int, [
 	}
 
 	return sessionIDs, identities, nil
+}
+
+func (s *SessionStore) ClearExpireOrRevoked(ctx context.Context) (int, error) {
+	now := time.Now()
+	batchSize := 1000
+
+	// 查询满足过期或已撤销条件的会话
+	ids, err := s.Client(ctx).Session.Query().
+		Where(
+			session.Or(
+				session.ExpiresAtLTE(now),
+				session.RevokedAtNotNil(),
+			),
+		).
+		Limit(batchSize).
+		Select(session.FieldID).
+		Ints(ctx)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	// 检查当前是否已经在事务中
+	_, inTx := txFromContext(ctx)
+	client := s.Client(ctx)
+
+	if inTx {
+		// 如果已经在事务中，直接复用当前事务客户端执行清理
+		return s.executeClearBatch(ctx, client, ids)
+	}
+
+	// 如果不在事务中，为这批次清理独立开启一个事务
+	tx, err := client.Tx(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("开启会话清理事务失败: %w", err)
+	}
+
+	// 将事务注入 Context
+	txCtx := context.WithValue(ctx, txKey{}, tx)
+	committed := false
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		} else if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// 执行删除
+	affected, err := s.executeClearBatch(txCtx, tx.Client(), ids)
+	if err != nil {
+		return 0, err
+	}
+
+	// 提交事务
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("提交会话清理事务失败: %w", err)
+	}
+	committed = true
+
+	return affected, nil
+}
+
+func (s *SessionStore) executeClearBatch(ctx context.Context, dbClient *db.Client, sessionIDs []int) (int, error) {
+	// 先删除关联的令牌
+	_, err := dbClient.RefreshToken.Delete().
+		Where(refreshtoken.SessionIDIn(sessionIDs...)).
+		Exec(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("清理会话关联的RefreshToken失败: %w", err)
+	}
+
+	// 再删除会话本身
+	affected, err := dbClient.Session.Delete().
+		Where(session.IDIn(sessionIDs...)).
+		Exec(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("清理Session失败: %w", err)
+	}
+
+	return affected, nil
+}
+
+func (s *SessionStore) ClearExpireOrRevokedAll(ctx context.Context) (int, error) {
+	totalAffected := 0
+	for {
+		affected, err := s.ClearExpireOrRevoked(ctx)
+		if err != nil {
+			return totalAffected, err
+		}
+		if affected == 0 {
+			break // 没有需要清理的数据了，退出循环
+		}
+		totalAffected += affected
+
+		time.Sleep(10 * time.Millisecond)
+	}
+	return totalAffected, nil
 }
