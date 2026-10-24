@@ -5,7 +5,7 @@ import (
 	"budeku/iam/internal/infra/ent/db"
 )
 
-func toUserGetResp(info *db.User) *biz.UserGetResp {
+func toUserGet(info *db.User) *biz.UserGetResp {
 	if info == nil {
 		return nil
 	}
@@ -22,7 +22,40 @@ func toUserGetResp(info *db.User) *biz.UserGetResp {
 	}
 }
 
-func toSessionCreateResp(info *db.Session) *biz.SessionCreateResp {
+func toUserCreate(info *db.User) *biz.UserCreateResp {
+	if info == nil {
+		return nil
+	}
+
+	return &biz.UserCreateResp{
+		ID: info.ID,
+	}
+}
+
+func toUserList(list []*db.User) []biz.UserListItemResp {
+	if len(list) == 0 {
+		return []biz.UserListItemResp{}
+	}
+
+	res := make([]biz.UserListItemResp, 0, len(list))
+	for _, v := range list {
+		item := biz.UserListItemResp{
+			ID:           v.ID,
+			Username:     v.Username,
+			Email:        v.Email,
+			UUID:         v.UUID,
+			Status:       v.Status,
+			LastLoginAt:  v.LastLoginAt,
+			IsSuperAdmin: v.IsSuperAdmin,
+		}
+
+		res = append(res, item)
+	}
+
+	return res
+}
+
+func toSessionCreate(info *db.Session) *biz.SessionCreateResp {
 	if info == nil {
 		return nil
 	}
@@ -32,7 +65,7 @@ func toSessionCreateResp(info *db.Session) *biz.SessionCreateResp {
 	}
 }
 
-func toSessionGetResp(info *db.Session) *biz.SessionGetResp {
+func toSessionGet(info *db.Session) *biz.SessionGetResp {
 	if info == nil {
 		return nil
 	}
@@ -54,14 +87,14 @@ func toSessionGetResp(info *db.Session) *biz.SessionGetResp {
 
 	// 查询时没有加 WithUser，这里会是 nil
 	if info.Edges.User != nil {
-		resp.User = toUserGetResp(info.Edges.User)
+		resp.User = toUserGet(info.Edges.User)
 	}
 
 	// 询时没有加 WithRefreshTokens，这里长度为 0
 	if len(info.Edges.RefreshTokens) > 0 {
 		tokens := make([]biz.RefreshTokenGetResp, len(info.Edges.RefreshTokens))
 		for i, t := range info.Edges.RefreshTokens {
-			tokens[i] = *toRefreshTokenGetResp(t)
+			tokens[i] = *toRefreshTokenGet(t)
 		}
 		resp.RefreshTokens = tokens
 	}
@@ -69,7 +102,7 @@ func toSessionGetResp(info *db.Session) *biz.SessionGetResp {
 	return resp
 }
 
-func toRefreshTokenGetResp(info *db.RefreshToken) *biz.RefreshTokenGetResp {
+func toRefreshTokenGet(info *db.RefreshToken) *biz.RefreshTokenGetResp {
 	if info == nil {
 		return nil
 	}
@@ -86,7 +119,7 @@ func toRefreshTokenGetResp(info *db.RefreshToken) *biz.RefreshTokenGetResp {
 	}
 }
 
-func toRefreshTokenCreateResp(info *db.RefreshToken) *biz.RefreshTokenCreateResp {
+func toRefreshTokenCreate(info *db.RefreshToken) *biz.RefreshTokenCreateResp {
 	if info == nil {
 		return nil
 	}
@@ -96,7 +129,7 @@ func toRefreshTokenCreateResp(info *db.RefreshToken) *biz.RefreshTokenCreateResp
 	}
 }
 
-func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
+func toKeypairGet(info *db.Keypair) *biz.KeypairGetResp {
 	if info == nil {
 		return nil
 	}
@@ -123,7 +156,7 @@ func toKeypairGetResp(info *db.Keypair) *biz.KeypairGetResp {
 	return resp
 }
 
-func toKeypairGetAllResp(list []*db.Keypair) []biz.KeypairGetResp {
+func toKeypairGetAll(list []*db.Keypair) []biz.KeypairGetResp {
 	if len(list) == 0 {
 		return []biz.KeypairGetResp{}
 	}
@@ -207,7 +240,7 @@ func toAppList(list []*db.App) []biz.AppListItemResp {
 	return res
 }
 
-func toAppInfo(info *db.App) *biz.AppGetResp {
+func toAppGet(info *db.App) *biz.AppGetResp {
 	if info == nil {
 		return nil
 	}

@@ -70,5 +70,12 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 		admin.PUT("/keypairs/:id/retire", app.Keypair.Retire)
 		admin.GET("/keypairs/status-options", app.Keypair.StatusOptions)
 		admin.GET("/keypairs/algorithm-options", app.Keypair.AlgorithmOptions)
+
+		admin.GET("/users", app.User.List)
+		admin.GET("/users/:id", app.User.Info)
+		admin.POST("/users", app.User.Create)
+		admin.PUT("/users/:id", app.User.Update)
+		admin.PUT("/users/:id/status", app.User.UpdateStatus)
+		admin.DELETE("/users/:id", app.User.Delete)
 	}
 }

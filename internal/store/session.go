@@ -39,7 +39,7 @@ func (s *SessionStore) Get(ctx context.Context, id int) (*biz.SessionGetResp, er
 		return nil, err
 	}
 
-	return toSessionGetResp(info), nil
+	return toSessionGet(info), nil
 }
 
 func (s *SessionStore) GetActiveSessionsByUser(ctx context.Context, userID int, appID int) ([]*db.Session, error) {
@@ -53,7 +53,7 @@ func (s *SessionStore) GetActiveSessionsByUser(ctx context.Context, userID int, 
 		All(ctx)
 }
 
-func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*biz.SessionCreateResp, error) {
+func (s *SessionStore) Create(ctx context.Context, body biz.SessionCreateCommand) (*biz.SessionCreateResp, error) {
 	info, err := s.Client(ctx).Session.Create().
 		SetIdentity(body.Identity).
 		SetAppID(body.AppID).
@@ -68,7 +68,7 @@ func (s *SessionStore) Create(ctx context.Context, body biz.SessionCommand) (*bi
 		return nil, err
 	}
 
-	return toSessionCreateResp(info), nil
+	return toSessionCreate(info), nil
 }
 
 func (s *SessionStore) UpdateLastActive(ctx context.Context, id int, t time.Time) error {
@@ -148,6 +148,41 @@ func (s *SessionStore) RevokeByAppID(ctx context.Context, appID int) ([]int, []u
 	}
 
 	// 更新状态为已吊销
+	_, err = client.Session.Update().
+		Where(session.IDIn(sessionIDs...)).
+		SetRevokedAt(time.Now()).
+		Save(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sessionIDs, identities, nil
+}
+
+func (s *SessionStore) RevokeByUserID(ctx context.Context, userID int) ([]int, []uuid.UUID, error) {
+	client := s.Client(ctx)
+
+	sessions, err := client.Session.Query().
+		Where(
+			session.UserIDEQ(userID),
+			session.RevokedAtIsNil(),
+		).
+		All(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(sessions) == 0 {
+		return []int{}, []uuid.UUID{}, nil
+	}
+
+	sessionIDs := make([]int, len(sessions))
+	identities := make([]uuid.UUID, len(sessions))
+	for i, v := range sessions {
+		sessionIDs[i] = v.ID
+		identities[i] = v.Identity
+	}
+
 	_, err = client.Session.Update().
 		Where(session.IDIn(sessionIDs...)).
 		SetRevokedAt(time.Now()).

@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type RefreshTokenCommand struct {
+type RefreshTokenCreateCommand struct {
 	AppID     int
 	SessionID int
 	UserID    int
@@ -39,7 +39,7 @@ type RefreshTokenStore interface {
 	GetByIdentity(ctx context.Context, identity []byte) (*RefreshTokenGetResp, error)
 	GetByIdentityWithEdges(ctx context.Context, identity []byte) (*RefreshTokenGetResp, error)
 
-	Create(ctx context.Context, body RefreshTokenCommand) (*RefreshTokenCreateResp, error)
+	Create(ctx context.Context, body RefreshTokenCreateCommand) (*RefreshTokenCreateResp, error)
 
 	RevokeByID(ctx context.Context, id int) error
 	RevokedBySessionID(ctx context.Context, sessionID int) error

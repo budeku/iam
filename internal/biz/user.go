@@ -15,22 +15,56 @@ import (
 )
 
 type UserGetResp struct {
-	ID           int
-	Username     string
-	UUID         uuid.UUID
-	Email        string
-	Password     []byte
-	Status       bool
-	LastLoginAt  *time.Time
-	IsSuperAdmin bool
+	ID           int        `json:"id"`
+	Username     string     `json:"username"`
+	UUID         uuid.UUID  `json:"uuid"`
+	Email        string     `json:"email"`
+	Password     []byte     `json:"password"`
+	Status       bool       `json:"status"`
+	LastLoginAt  *time.Time `json:"last_login_at"`
+	IsSuperAdmin bool       `json:"is_super_admin"`
+}
+
+type UserInfoResp struct {
+	ID           int        `json:"id"`
+	Username     string     `json:"username"`
+	UUID         uuid.UUID  `json:"uuid"`
+	Email        string     `json:"email"`
+	Status       bool       `json:"status"`
+	LastLoginAt  *time.Time `json:"last_login_at"`
+	IsSuperAdmin bool       `json:"is_super_admin"`
+}
+
+type UserListItemResp struct {
+	ID           int        `json:"id"`
+	Username     string     `json:"username"`
+	UUID         uuid.UUID  `json:"uuid"`
+	Email        string     `json:"email"`
+	Status       bool       `json:"status"`
+	LastLoginAt  *time.Time `json:"last_login_at"`
+	IsSuperAdmin bool       `json:"is_super_admin"`
+}
+
+type UserCreateResp struct {
+	ID int `json:"id"`
 }
 
 type UserStore interface {
+	List(ctx context.Context, keyword string, page, perPage int) ([]UserListItemResp, int, error)
+
 	Get(ctx context.Context, id int) (*UserGetResp, error)
 	GetByUsername(ctx context.Context, username string) (*UserGetResp, error)
 	GetByUUID(ctx context.Context, userUUID uuid.UUID) (*UserGetResp, error)
 
+	Duplicate(ctx context.Context, username, email string, id ...int) (bool, error)
+
+	Create(ctx context.Context, username, email, passwordHash string, uuid uuid.UUID, status bool) (*UserCreateResp, error)
+
+	Update(ctx context.Context, id int, username, email, passwordHash string, status bool) (*UserGetResp, error)
 	UpdateLastLogin(ctx context.Context, id int, at time.Time) error
+	UpdateStatus(ctx context.Context, id int, status bool) error
+
+	Delete(ctx context.Context, id int) error
 }
 
 type JwtSinger interface {
@@ -106,7 +140,7 @@ func (b *UserBiz) Login(ctx context.Context, username, passwordStr, ip, userAgen
 			return err
 		}
 
-		sessionResp, err := b.sessionStore.Create(ctx, SessionCommand{
+		sessionResp, err := b.sessionStore.Create(ctx, SessionCreateCommand{
 			AppID:           conf.IAMAppID,
 			UserID:          info.ID,
 			Identity:        sessionIdentity,
@@ -172,7 +206,7 @@ func (b *UserBiz) createRefreshTokenInTx(ctx context.Context, userID, appID, ses
 	}
 
 	identity := hashutil.Sum256([]byte(plain)) // 数据库存储哈希值
-	_, err = b.refreshTokenStore.Create(ctx, RefreshTokenCommand{
+	_, err = b.refreshTokenStore.Create(ctx, RefreshTokenCreateCommand{
 		AppID:     appID,
 		UserID:    userID,
 		SessionID: sessionID,
@@ -373,4 +407,178 @@ func (b *UserBiz) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*UserGetRe
 		return nil, err
 	}
 	return info, nil
+}
+
+func (b *UserBiz) List(ctx context.Context, keyword string, page, perPage int) ([]UserListItemResp, int, error) {
+	return b.store.List(ctx, keyword, page, perPage)
+}
+
+func (b *UserBiz) Info(ctx context.Context, id int) (*UserInfoResp, error) {
+	info, err := b.store.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserInfoResp{
+		ID:           info.ID,
+		Username:     info.Username,
+		Email:        info.Email,
+		UUID:         info.UUID,
+		Status:       info.Status,
+		LastLoginAt:  info.LastLoginAt,
+		IsSuperAdmin: info.IsSuperAdmin,
+	}, nil
+}
+
+func (b *UserBiz) Create(ctx context.Context, username, email string, passwordStr string, status bool) (*UserCreateResp, error) {
+	exist, err := b.store.Duplicate(ctx, username, email)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, ErrAlreadyExists
+	}
+
+	passwordHash, err := password.Hash(passwordStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.store.Create(ctx, username, email, passwordHash, uuid.New(), status)
+}
+
+func (b *UserBiz) Update(ctx context.Context, id int, username, email string, passwordStr string, status bool) error {
+	oldUser, err := b.store.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if oldUser.IsSuperAdmin && !status {
+		return errors.New("超级管理员账号不能被禁用")
+	}
+
+	exist, err := b.store.Duplicate(ctx, username, email, id)
+	if err != nil {
+		return err
+	}
+	if exist {
+		return ErrAlreadyExists
+	}
+
+	var passwordHash string
+	if passwordStr != "" {
+		var err error
+		passwordHash, err = password.Hash(passwordStr)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 修改任意一项则重新登录
+	needRevoke := (oldUser.Status && !status) ||
+		(passwordStr != "") ||
+		(oldUser.Username != username) ||
+		(oldUser.Email != email)
+
+	err = b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		_, err := b.store.Update(txCtx, id, username, email, passwordHash, status)
+		return err
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if needRevoke {
+		go b.revokeUserSessionsAndTokens(id)
+	}
+
+	return nil
+}
+
+func (b *UserBiz) UpdateStatus(ctx context.Context, id int, status bool) error {
+	oldUser, err := b.store.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if oldUser.Status == status {
+		return nil
+	}
+
+	if oldUser.IsSuperAdmin && !status {
+		return errors.New("超级管理员账号不能被禁用")
+	}
+
+	needRevoke := oldUser.Status && !status
+
+	err = b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		return b.store.UpdateStatus(txCtx, id, status)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if needRevoke {
+		go b.revokeUserSessionsAndTokens(id)
+	}
+
+	return nil
+}
+
+func (b *UserBiz) Delete(ctx context.Context, id int) error {
+	oldUser, err := b.store.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if oldUser.IsSuperAdmin {
+		return errors.New("超级管理员账号不能被删除")
+	}
+
+	err = b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		return b.store.Delete(txCtx, id)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	go b.revokeUserSessionsAndTokens(id)
+
+	return nil
+}
+
+func (b *UserBiz) revokeUserSessionsAndTokens(userID int) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var sessionIdentities []uuid.UUID
+
+	err := b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		sessionIDs, identities, err := b.sessionStore.RevokeByUserID(txCtx, userID)
+		if err != nil {
+			return err
+		}
+		sessionIdentities = identities
+
+		if len(sessionIDs) > 0 {
+			if err := b.refreshTokenStore.RevokedBySessionIDs(txCtx, sessionIDs); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logger.Error("级联吊销用户(ID: %d)的会话和令牌数据库操作失败: %v", userID, err)
+		return
+	}
+
+	if len(sessionIdentities) > 0 {
+		if err := b.authToken.DelAllBySessionIdentities(context.Background(), sessionIdentities); err != nil {
+			logger.Error("清理用户(ID: %d)关联的 Redis 凭证失败: %v", userID, err)
+		}
+	}
 }

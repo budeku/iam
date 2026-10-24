@@ -30,7 +30,7 @@ func (s *RefreshTokenStore) GetByIdentity(ctx context.Context, identity []byte) 
 		return nil, err
 	}
 
-	return toRefreshTokenGetResp(info), nil
+	return toRefreshTokenGet(info), nil
 }
 
 func (s *RefreshTokenStore) GetByIdentityWithEdges(ctx context.Context, identity []byte) (*biz.RefreshTokenGetResp, error) {
@@ -48,13 +48,13 @@ func (s *RefreshTokenStore) GetByIdentityWithEdges(ctx context.Context, identity
 		return nil, err
 	}
 
-	resp := toRefreshTokenGetResp(info)
+	resp := toRefreshTokenGet(info)
 
 	if info.Edges.Session != nil {
-		sessionResp := toSessionGetResp(info.Edges.Session)
+		sessionResp := toSessionGet(info.Edges.Session)
 
 		if info.Edges.Session.Edges.User != nil {
-			sessionResp.User = toUserGetResp(info.Edges.Session.Edges.User)
+			sessionResp.User = toUserGet(info.Edges.Session.Edges.User)
 		}
 
 		resp.Session = sessionResp
@@ -63,7 +63,7 @@ func (s *RefreshTokenStore) GetByIdentityWithEdges(ctx context.Context, identity
 	return resp, nil
 }
 
-func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCommand) (*biz.RefreshTokenCreateResp, error) {
+func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCreateCommand) (*biz.RefreshTokenCreateResp, error) {
 	info, err := s.Client(ctx).RefreshToken.Create().
 		SetAppID(body.AppID).
 		SetSessionID(body.SessionID).
@@ -77,10 +77,10 @@ func (s *RefreshTokenStore) Create(ctx context.Context, body biz.RefreshTokenCom
 		return nil, err
 	}
 
-	return toRefreshTokenCreateResp(info), nil
+	return toRefreshTokenCreate(info), nil
 }
 
-func (s *RefreshTokenStore) CreateWithEdges(ctx context.Context, body biz.RefreshTokenCommand) (*db.RefreshToken, error) {
+func (s *RefreshTokenStore) CreateWithEdges(ctx context.Context, body biz.RefreshTokenCreateCommand) (*db.RefreshToken, error) {
 	return s.Client(ctx).RefreshToken.Create().
 		SetAppID(body.AppID).
 		SetIdentity(body.Identity).

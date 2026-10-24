@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type SessionCommand struct {
+type SessionCreateCommand struct {
 	Identity        uuid.UUID
 	AppID           int
 	UserID          int
@@ -45,12 +45,13 @@ type SessionGetResp struct {
 type SessionStore interface {
 	Get(ctx context.Context, id int) (*SessionGetResp, error)
 
-	Create(ctx context.Context, body SessionCommand) (*SessionCreateResp, error)
+	Create(ctx context.Context, body SessionCreateCommand) (*SessionCreateResp, error)
 
 	UpdateLastActive(ctx context.Context, id int, t time.Time) error
 	RevokedByID(ctx context.Context, id int) error
 	RevokedByIdentity(ctx context.Context, identity uuid.UUID) (int, error)
 	RevokeByAppID(ctx context.Context, appID int) ([]int, []uuid.UUID, error)
+	RevokeByUserID(ctx context.Context, userID int) ([]int, []uuid.UUID, error)
 }
 
 type SessionBiz struct {

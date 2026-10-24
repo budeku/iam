@@ -34,7 +34,7 @@ func (s *KeypairStore) GetIAMKeypair(ctx context.Context) (*biz.KeypairGetResp, 
 	if err != nil {
 		return nil, err
 	}
-	return toKeypairGetResp(info), nil
+	return toKeypairGet(info), nil
 }
 
 func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algorithm enum.KeypairAlgorithm, publicKey, privateKey string) (*biz.KeypairGetResp, error) {
@@ -48,7 +48,7 @@ func (s *KeypairStore) InitIAMKeypair(ctx context.Context, kid uuid.UUID, algori
 	if err != nil {
 		return nil, err
 	}
-	return toKeypairGetResp(info), nil
+	return toKeypairGet(info), nil
 }
 
 func keypairListFields() []string {
@@ -105,7 +105,7 @@ func (s *KeypairStore) Get(ctx context.Context, id int) (*biz.KeypairGetResp, er
 		return nil, err
 	}
 
-	return toKeypairGetResp(info), nil
+	return toKeypairGet(info), nil
 }
 
 func (s *KeypairStore) GetByAppID(ctx context.Context, appID int) (*biz.KeypairGetResp, error) {
@@ -124,7 +124,7 @@ func (s *KeypairStore) GetByAppID(ctx context.Context, appID int) (*biz.KeypairG
 		return nil, err
 	}
 
-	return toKeypairGetResp(info), nil
+	return toKeypairGet(info), nil
 }
 
 func (s *KeypairStore) GetByKid(ctx context.Context, kid uuid.UUID) (*biz.KeypairGetResp, error) {
@@ -142,7 +142,7 @@ func (s *KeypairStore) GetByKid(ctx context.Context, kid uuid.UUID) (*biz.Keypai
 		return nil, err
 	}
 
-	return toKeypairGetResp(info), nil
+	return toKeypairGet(info), nil
 }
 
 func (s *KeypairStore) GetAllValidByAppID(ctx context.Context, appID int) ([]biz.KeypairGetResp, error) {
@@ -157,7 +157,7 @@ func (s *KeypairStore) GetAllValidByAppID(ctx context.Context, appID int) ([]biz
 		return nil, err
 	}
 
-	return toKeypairGetAllResp(list), nil
+	return toKeypairGetAll(list), nil
 }
 
 func (s *KeypairStore) Create(

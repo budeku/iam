@@ -109,3 +109,145 @@ func (h *UserHandler) Me(c *gin.Context) {
 
 	response.Success(c, res)
 }
+
+type UserListReq struct {
+	Keyword string `form:"keyword,omitempty" binding:"max=32"`
+	Pagination
+}
+
+func (h *UserHandler) List(c *gin.Context) {
+	var params UserListReq
+	if err := c.ShouldBindQuery(&params); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	list, count, err := h.userBiz.List(c.Request.Context(), params.Keyword, params.Page, params.PerPage)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.Success(c, ListResp{
+		Content: list,
+		Count:   count,
+	})
+}
+
+func (h *UserHandler) Info(c *gin.Context) {
+	var params InfoPathParams
+	if err := c.ShouldBindUri(&params); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	info, err := h.userBiz.Info(c.Request.Context(), params.ID)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.Success(c, info)
+}
+
+type UserCreateReq struct {
+	Username string `json:"username" binding:"required,max=32"`
+	Email    string `json:"email" binding:"required,email"`
+	Status   bool   `json:"status"`
+	Password string `json:"password" binding:"required,min=6,max=18"`
+}
+
+func (h *UserHandler) Create(c *gin.Context) {
+	var body UserCreateReq
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	_, err := h.userBiz.Create(
+		c.Request.Context(),
+		body.Username,
+		body.Email,
+		body.Password,
+		body.Status,
+	)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.OK(c)
+}
+
+type UserUpdatePathParams struct {
+	UserID int `uri:"id" binding:"required"`
+}
+
+type UserUpdateReq struct {
+	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required,max=32"`
+	Status   bool   `json:"status"`
+	Password string `json:"password" binding:"omitempty,min=6,max=18"`
+}
+
+func (h *UserHandler) Update(c *gin.Context) {
+	var params UserUpdatePathParams
+	if err := c.ShouldBindUri(&params); err != nil {
+		response.Err(c, code.InvalidParams)
+		return
+	}
+
+	var body UserUpdateReq
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.Err(c, code.InvalidParams)
+		return
+	}
+
+	err := h.userBiz.Update(c.Request.Context(), params.UserID, body.Username, body.Email, body.Password, body.Status)
+	if err != nil {
+		response.ErrMessage(c, code.BadRequest, err.Error())
+		return
+	}
+
+	response.OK(c)
+}
+
+type UserUpdateStatusReq struct {
+	Status bool `json:"status"`
+}
+
+func (h *UserHandler) UpdateStatus(c *gin.Context) {
+	var params UserUpdatePathParams
+	if err := c.ShouldBindUri(&params); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	var body AppUpdateStatusReq
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	if err := h.userBiz.UpdateStatus(c.Request.Context(), params.UserID, body.Status); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.OK(c)
+}
+
+func (h *UserHandler) Delete(c *gin.Context) {
+	var params DeletePathParams
+	if err := c.ShouldBindUri(&params); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	if err := h.userBiz.Delete(c.Request.Context(), params.ID); err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.OK(c)
+}

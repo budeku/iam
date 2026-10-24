@@ -108,7 +108,7 @@ func (s *AppStore) Get(ctx context.Context, id int) (*biz.AppGetResp, error) {
 		}
 		return nil, err
 	}
-	return toAppInfo(info), nil
+	return toAppGet(info), nil
 }
 
 func (s *AppStore) GetByClientID(ctx context.Context, clientID uuid.UUID) (*biz.AppGetResp, error) {
@@ -121,7 +121,7 @@ func (s *AppStore) GetByClientID(ctx context.Context, clientID uuid.UUID) (*biz.
 		}
 		return nil, err
 	}
-	return toAppInfo(info), nil
+	return toAppGet(info), nil
 }
 
 func (s *AppStore) CreateDuplicate(ctx context.Context, name string, clientID uuid.UUID) (bool, error) {
@@ -167,7 +167,7 @@ func (s *AppStore) Create(ctx context.Context, name string, clientID uuid.UUID, 
 		return nil, err
 	}
 
-	return toAppInfo(info), nil
+	return toAppGet(info), nil
 }
 
 func (s *AppStore) Update(ctx context.Context, id int, name string, redirectUris []string, status bool) (*biz.AppGetResp, error) {
@@ -183,7 +183,7 @@ func (s *AppStore) Update(ctx context.Context, id int, name string, redirectUris
 	if err != nil {
 		return nil, err
 	}
-	return toAppInfo(info), nil
+	return toAppGet(info), nil
 }
 
 func (s *AppStore) UpdateStatus(ctx context.Context, id int, status bool) error {

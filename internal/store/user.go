@@ -61,6 +61,54 @@ func (s *UserStore) InitSuperAdmin(ctx context.Context, username, email, passwor
 	return res, nil
 }
 
+func userListFields() []string {
+	return []string{
+		user.FieldID,
+		user.FieldUsername,
+		user.FieldEmail,
+		user.FieldUUID,
+		user.FieldStatus,
+		user.FieldLastLoginAt,
+		user.FieldIsSuperAdmin,
+	}
+}
+
+func (s *UserStore) List(ctx context.Context, keyword string, page, perPage int) ([]biz.UserListItemResp, int, error) {
+	q := s.Client(ctx).User.Query().
+		Where(user.DeletedAtIsNil())
+
+	if keyword != "" {
+		q = q.Where(
+			user.Or(
+				user.UsernameContains(keyword),
+				user.EmailContains(keyword),
+			),
+		)
+	}
+
+	total, err := q.Clone().Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []biz.UserListItemResp{}, 0, nil
+	}
+
+	offset, limit := paginate(total, page, perPage)
+
+	list, err := q.
+		Order(db.Desc(user.FieldID)).
+		Select(userListFields()...).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return toUserList(list), total, nil
+}
+
 func userGetFields() []string {
 	return []string{
 		user.FieldID,
@@ -90,7 +138,7 @@ func (s *UserStore) Get(ctx context.Context, id int) (*biz.UserGetResp, error) {
 		return nil, err
 	}
 
-	return toUserGetResp(info), nil
+	return toUserGet(info), nil
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*biz.UserGetResp, error) {
@@ -109,7 +157,7 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*biz.Us
 		return nil, err
 	}
 
-	return toUserGetResp(info), nil
+	return toUserGet(info), nil
 }
 
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*biz.UserGetResp, error) {
@@ -128,7 +176,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*biz.UserGetR
 		return nil, err
 	}
 
-	return toUserGetResp(info), nil
+	return toUserGet(info), nil
 }
 
 func (s *UserStore) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*biz.UserGetResp, error) {
@@ -147,7 +195,7 @@ func (s *UserStore) GetByUUID(ctx context.Context, userUUID uuid.UUID) (*biz.Use
 		return nil, err
 	}
 
-	return toUserGetResp(info), nil
+	return toUserGet(info), nil
 }
 
 func (s *UserStore) GetUsersWithActiveTokens(ctx context.Context) ([]*db.User, error) {
@@ -159,6 +207,65 @@ func (s *UserStore) GetUsersWithActiveTokens(ctx context.Context) ([]*db.User, e
 			),
 		).
 		All(ctx)
+}
+
+func (s *UserStore) Duplicate(ctx context.Context, username, email string, id ...int) (bool, error) {
+	q := s.Client(ctx).User.Query().
+		Where(
+			user.DeletedAtIsNil(),
+			user.Or(
+				user.UsernameEQ(username),
+				user.EmailEQ(email),
+			),
+		)
+	if len(id) > 0 && id[0] > 0 {
+		q = q.Where(user.IDNEQ(id[0]))
+	}
+
+	exist, err := q.Exist(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return exist, nil
+}
+
+func (s *UserStore) Create(ctx context.Context, username, email, passwordHash string, uuid uuid.UUID, status bool) (*biz.UserCreateResp, error) {
+	info, err := s.Client(ctx).User.Create().
+		SetUsername(username).
+		SetEmail(email).
+		SetPassword([]byte(passwordHash)).
+		SetUUID(uuid).
+		SetStatus(status).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return toUserCreate(info), nil
+}
+
+func (s *UserStore) Update(ctx context.Context, id int, username, email, passwordHash string, status bool) (*biz.UserGetResp, error) {
+	if _, err := s.Get(ctx, id); err != nil {
+		return nil, err
+	}
+
+	query := s.Client(ctx).User.UpdateOneID(id).
+		Where(user.IsSuperAdminEQ(false)).
+		SetUsername(username).
+		SetEmail(email).
+		SetStatus(status)
+
+	if passwordHash != "" {
+		query.SetPassword([]byte(passwordHash))
+	}
+
+	info, err := query.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return toUserGet(info), nil
 }
 
 func (s *UserStore) UpdateLastLogin(ctx context.Context, id int, t time.Time) error {
@@ -173,5 +280,34 @@ func (s *UserStore) UpdateLastLogin(ctx context.Context, id int, t time.Time) er
 		return err
 	}
 
+	return nil
+}
+
+func (s *UserStore) UpdateStatus(ctx context.Context, id int, status bool) error {
+	if _, err := s.Get(ctx, id); err != nil {
+		return err
+	}
+
+	err := s.Client(ctx).User.UpdateOneID(id).
+		Where(user.IsSuperAdminEQ(false)).
+		SetStatus(status).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UserStore) Delete(ctx context.Context, id int) error {
+	if _, err := s.Get(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.Client(ctx).User.UpdateOneID(id).
+		Where(user.IsSuperAdminEQ(false)).
+		SetDeletedAt(time.Now()).
+		Exec(ctx); err != nil {
+		return err
+	}
 	return nil
 }
