@@ -119,3 +119,12 @@ export function userSessions() {
 export function userSessionRevoke(id: number) {
   return request.delete<ApiResponse>(`/users/sessions/${id}`)
 }
+
+export interface UserUpdatePasswordReq {
+  old_password: string
+  new_password: string
+}
+
+export function userUpdatePassword(body: UserUpdatePasswordReq) {
+  return request.put<ApiResponse>('/users/password', body)
+}

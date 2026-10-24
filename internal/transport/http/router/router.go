@@ -53,6 +53,7 @@ func registerRoutes(r *gin.Engine, app *wire.App) {
 	protected.GET("/auth/me", app.User.Me)
 	protected.GET("/users/sessions", app.User.Session)
 	protected.DELETE("/users/sessions/:id", app.User.RevokeSession)
+	protected.PUT("/users/password", app.User.UpdatePassword)
 
 	admin := protected.Group("")
 	admin.Use(middleware.RequireSuperAdmin(app.UserBiz))

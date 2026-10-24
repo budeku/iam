@@ -84,6 +84,7 @@ type UserStore interface {
 	Update(ctx context.Context, id int, username, email, passwordHash string, status bool) (*UserGetResp, error)
 	UpdateLastLogin(ctx context.Context, id int, at time.Time) error
 	UpdateStatus(ctx context.Context, id int, status bool) error
+	UpdatePassword(ctx context.Context, id int, passwordHash string) error
 
 	Delete(ctx context.Context, id int) error
 }
@@ -544,6 +545,50 @@ func (b *UserBiz) UpdateStatus(ctx context.Context, id int, status bool) error {
 	if needRevoke {
 		go b.revokeUserSessionsAndTokens(id)
 	}
+
+	return nil
+}
+
+func (b *UserBiz) UpdatePassword(ctx context.Context, userID int, oldPasswordStr, newPasswordStr string) error {
+	if oldPasswordStr == "" || newPasswordStr == "" {
+		return errors.New("密码不能为空")
+	}
+	if oldPasswordStr == newPasswordStr {
+		return errors.New("新密码不能与旧密码相同")
+	}
+
+	info, err := b.store.Get(ctx, userID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return errors.New("用户不存在")
+		}
+		return err
+	}
+
+	ok, err := password.Validate(oldPasswordStr, string(info.Password))
+	if err != nil {
+		return errors.New("密码验证失败")
+	}
+	if !ok {
+		return errors.New("旧密码错误")
+	}
+
+	newPasswordHash, err := password.Hash(newPasswordStr)
+	if err != nil {
+		logger.Error("新密码加密失败: %v", err)
+		return errors.New("密码处理失败")
+	}
+
+	err = b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		return b.store.UpdatePassword(txCtx, userID, newPasswordHash)
+	})
+
+	if err != nil {
+		logger.Error("修改密码事务执行失败 (UserID: %d): %v", userID, err)
+		return errors.New("修改密码失败")
+	}
+
+	go b.revokeUserSessionsAndTokens(userID)
 
 	return nil
 }

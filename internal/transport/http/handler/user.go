@@ -258,6 +258,46 @@ func (h *UserHandler) UpdateStatus(c *gin.Context) {
 	response.OK(c)
 }
 
+type UserUpdatePasswordReq struct {
+	OldPassword string `json:"old_password" binding:"required,min=6,max=18"`
+	NewPassword string `json:"new_password" binding:"required,min=6,max=18"`
+}
+
+func (h *UserHandler) UpdatePassword(c *gin.Context) {
+	userUUID, ok := middleware.UserUUIDFromContext(c)
+	if !ok {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	info, err := h.userBiz.GetByUUID(ctx, userUUID)
+	if err != nil {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	var body UserUpdatePasswordReq
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	if !util.IsValidPassword(body.OldPassword) || !util.IsValidPassword(body.NewPassword) {
+		response.Err(c, code.InvalidParams)
+		return
+	}
+
+	err = h.userBiz.UpdatePassword(ctx, info.ID, body.OldPassword, body.NewPassword)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.OK(c)
+}
+
 func (h *UserHandler) Delete(c *gin.Context) {
 	var params DeletePathParams
 	if err := c.ShouldBindUri(&params); err != nil {
@@ -283,13 +323,13 @@ func (h *UserHandler) Session(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	u, err := h.userBiz.GetByUUID(ctx, userUUID)
+	info, err := h.userBiz.GetByUUID(ctx, userUUID)
 	if err != nil {
 		response.Err(c, code.Unauthorized)
 		return
 	}
 
-	res, err := h.userBiz.Session(ctx, u.ID, currentSessionID)
+	res, err := h.userBiz.Session(ctx, info.ID, currentSessionID)
 	if err != nil {
 		response.BadRequest(c)
 		return

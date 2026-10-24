@@ -40,6 +40,18 @@ export default {
     superAdmin: '超级管理员',
     regularUser: '普通用户',
 
+    changePassword: '修改密码',
+    oldPassword: '原密码',
+    newPassword: '新密码',
+    confirmPassword: '确认新密码',
+    oldPasswordRequired: '请输入原密码',
+    newPasswordRequired: '请输入新密码',
+    confirmPasswordRequired: '请再次输入密码',
+    passwordsNotMatch: '两次输入的密码不一致',
+    passwordMinLength: '密码长度不能小于 6 位',
+    updatePasswordSuccess: '密码修改成功，请重新登录',
+    save: '保存修改',
+
     sessionManagement: '登录会话与设备管理',
     refresh: '刷新',
     expandRefreshTokens: '关联的刷新令牌 (Refresh Tokens):',

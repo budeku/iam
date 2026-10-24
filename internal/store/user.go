@@ -298,6 +298,16 @@ func (s *UserStore) UpdateStatus(ctx context.Context, id int, status bool) error
 	return nil
 }
 
+func (s *UserStore) UpdatePassword(ctx context.Context, id int, passwordHash string) error {
+	if _, err := s.Get(ctx, id); err != nil {
+		return err
+	}
+
+	return s.Client(ctx).User.UpdateOneID(id).
+		SetPassword([]byte(passwordHash)).
+		Exec(ctx)
+}
+
 func (s *UserStore) Delete(ctx context.Context, id int) error {
 	if _, err := s.Get(ctx, id); err != nil {
 		return err
