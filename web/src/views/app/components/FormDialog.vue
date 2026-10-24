@@ -80,7 +80,6 @@ async function handleSubmit() {
     emit('submit', {
       name: form.name,
       redirect_uris: uris,
-      status: form.status,
     })
   } else {
     emit(
@@ -109,8 +108,9 @@ function handleClosed() {
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-form-item :label="t('app.field.name')" prop="name">
-        <el-input v-model="form.name" />
+        <el-input v-model="form.name" :placeholder="t('app.form.namePlaceholder')" />
       </el-form-item>
+
       <el-form-item :label="t('app.field.redirectUris')" prop="redirect_uris">
         <el-input
           v-model="form.redirect_uris"
@@ -120,7 +120,7 @@ function handleClosed() {
         />
       </el-form-item>
 
-      <el-form-item :label="t('app.field.status')" prop="status">
+      <el-form-item v-if="mode === 'edit'" :label="t('app.field.status')" prop="status">
         <el-select v-model="form.status" style="width: 100%">
           <el-option :label="t('app.status.active')" :value="true" />
           <el-option :label="t('app.status.disabled')" :value="false" />

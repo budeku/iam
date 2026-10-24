@@ -16,6 +16,7 @@ export default {
     createTitle: '新建应用',
     editTitle: '编辑应用',
     nameRequired: '请输入应用名称',
+    namePlaceholder: '请输入应用名称',
     redirectUrisRequired: '请至少输入一个回调地址',
     redirectUrisPlaceholder: '每行一个地址',
   },

@@ -6,7 +6,7 @@ import type { KeypairCreateReq } from '@/api/modules/keypair'
 import { useKeypair } from './useKeypair'
 
 const { t } = useI18n()
-const { appOptionData, algorithmData, statusData, fetchAppOptions } = useKeypair()
+const { appOptionData, algorithmData, fetchAppOptions } = useKeypair()
 
 const visible = defineModel<boolean>('visible', { default: false })
 const submitting = defineModel<boolean>('submitting', { default: false })
@@ -19,7 +19,6 @@ const formRef = ref<FormInstance>()
 const form = reactive<KeypairCreateReq>({
   app_id: undefined as unknown as number,
   algorithm: '',
-  status: '',
 })
 
 onMounted(() => {
@@ -48,17 +47,6 @@ watch(
   { immediate: true }
 )
 
-watch(
-  statusData,
-  statuses => {
-    const first = statuses?.[0]
-    if (first && !form.status) {
-      form.status = first.label
-    }
-  },
-  { immediate: true }
-)
-
 function resetForm() {
   const firstApp = appOptionData.value?.[0]
   if (firstApp) {
@@ -74,20 +62,12 @@ function resetForm() {
     form.algorithm = ''
   }
 
-  const firstStatus = statusData.value?.[0]
-  if (firstStatus) {
-    form.status = firstStatus.label
-  } else {
-    form.status = ''
-  }
-
   formRef.value?.clearValidate()
 }
 
 const rules: FormRules = {
   app_id: [{ required: true, message: t('keypair.form.appIdRequired'), trigger: 'change' }],
   algorithm: [{ required: true, message: t('keypair.form.algorithmRequired'), trigger: 'change' }],
-  status: [{ required: true, message: t('keypair.form.statusRequired'), trigger: 'change' }],
 }
 
 async function handleSubmit() {
@@ -124,17 +104,6 @@ function handleClosed() {
         <el-select v-model="form.algorithm" style="width: 100%">
           <el-option
             v-for="item in algorithmData"
-            :key="item.label"
-            :label="item.label"
-            :value="item.label"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item :label="t('keypair.field.status')" prop="status">
-        <el-select v-model="form.status" style="width: 100%">
-          <el-option
-            v-for="item in statusData"
             :key="item.label"
             :label="item.label"
             :value="item.label"

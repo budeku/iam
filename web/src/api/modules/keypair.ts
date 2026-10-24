@@ -42,7 +42,6 @@ export function keypairInfo(id: number) {
 export interface KeypairCreateReq {
   app_id: number
   algorithm: string
-  status: string
 }
 
 export function keypairCreate(body: KeypairCreateReq) {

@@ -44,7 +44,6 @@ export function appInfo(id: number) {
 export interface AppCreateReq {
   name: string
   redirect_uris: string[]
-  status: boolean
 }
 
 export function appCreate(body: AppCreateReq) {
