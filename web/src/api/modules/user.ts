@@ -90,3 +90,32 @@ export function userUpdateStatus(id: number, body: UserUpdateStatusReq) {
 export function userDelete(id: number) {
   return request.delete<ApiResponse>(`/users/${id}`)
 }
+
+export interface UserSessionRefreshTokenResp {
+  id: number
+  jti: string
+  expires_at: string
+}
+
+export interface UserSessionItemResp {
+  id: number
+  identity: string
+  app_id: number
+  app_name: string
+  ip: string
+  user_agent: string
+  auth_method: string
+  authenticated_at: string
+  last_active_at: string
+  expires_at: string
+  refresh_tokens: UserSessionRefreshTokenResp[]
+  is_current: boolean
+}
+
+export function userSessions() {
+  return request.get<ApiResponse<UserSessionItemResp[]>>('/users/sessions')
+}
+
+export function userSessionRevoke(id: number) {
+  return request.delete<ApiResponse>(`/users/sessions/${id}`)
+}
