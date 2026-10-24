@@ -29,6 +29,11 @@ func New(app *wire.App) *gin.Engine {
 		r.Use(middleware.RequestLogger())
 	}
 
+	allowOrigins := conf.Get().HTTP.CORSAllowOrigins
+	if len(allowOrigins) > 0 {
+		r.Use(middleware.CORS(allowOrigins))
+	}
+
 	r.GET("/healthz", healthCheck)
 
 	registerRoutes(r, app)

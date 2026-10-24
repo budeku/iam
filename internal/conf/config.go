@@ -48,7 +48,9 @@ func defaultConfig() *Config {
 				"192.168.0.0/16", // Private Network
 				"fc00::/7",       // Unique Local Address (IPv6)
 			},
-			CORSAllowOrigins: nil,
+			CORSAllowOrigins: []string{
+				"http://localhost:5173",
+			},
 		},
 		Logger: Logger{
 			Filename:   filepath.Join(DataDir, "logs/iam.log"),
