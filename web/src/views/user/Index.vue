@@ -71,7 +71,8 @@ query()
             v-model="params.keyword"
             :placeholder="t('user.searchPlaceholder')"
             clearable
-            style="width: 220px"
+            :maxlength="26"
+            style="width: 230px"
             @keyup.enter="search"
           />
           <el-button type="primary" @click="search">{{ t('common.search') }}</el-button>

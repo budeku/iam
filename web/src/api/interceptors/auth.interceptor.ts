@@ -1,6 +1,7 @@
 import { i18n } from '@/locales'
 import { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import request from '../request'
+import { handleApiError } from '@/utils/message'
 
 declare module 'axios' {
   export interface AxiosRequestConfig {
@@ -56,36 +57,36 @@ request.interceptors.response.use(
 
     const status = error.response?.status
 
-    if (status !== 401 || originalConfig._retry) {
-      return Promise.reject(error)
+    if (status === 401 && !originalConfig._retry) {
+      if (isRefreshing) {
+        return new Promise<void>((resolve, reject) => {
+          pendingQueue.push({ resolve, reject })
+        }).then(() => {
+          originalConfig._retry = true
+          return request(originalConfig)
+        })
+      }
+
+      isRefreshing = true
+      originalConfig._retry = true
+
+      try {
+        await refreshToken()
+        resolveQueue()
+        return await request(originalConfig)
+      } catch (refreshError) {
+        rejectQueue(refreshError)
+        originalConfig._retry = false
+        redirectToLogin()
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
 
-    if (isRefreshing) {
-      return new Promise<void>((resolve, reject) => {
-        pendingQueue.push({ resolve, reject })
-      }).then(() => {
-        originalConfig._retry = true
-        return request(originalConfig)
-      })
-    }
+    handleApiError(error)
 
-    isRefreshing = true
-    originalConfig._retry = true
-
-    try {
-      await refreshToken()
-      resolveQueue()
-      return await request(originalConfig)
-    } catch (refreshError) {
-      rejectQueue(refreshError)
-
-      originalConfig._retry = false
-      redirectToLogin()
-
-      return Promise.reject(refreshError)
-    } finally {
-      isRefreshing = false
-    }
+    return Promise.reject(error)
   }
 )
 

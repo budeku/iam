@@ -4,6 +4,7 @@ import { SUPPORTED_LOCALES, type SupportedLocale } from '@/locales'
 import { useLocaleStore } from '@/stores/locale'
 import { useThemeStore } from '@/stores/theme'
 import { useUserStore } from '@/stores/user'
+import { handleApiError } from '@/utils/message'
 import { ElMessageBox } from 'element-plus'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -75,7 +76,7 @@ async function handleLogout() {
     router.push('/login')
   } catch (error) {
     if (error !== 'cancel') {
-      reportError(error)
+      handleApiError(error)
     }
   }
 }

@@ -10,7 +10,7 @@ import {
   type AppUpdateReq,
 } from '@/api/modules/app'
 import { i18n } from '@/locales'
-import message, { reportError } from '@/utils/message'
+import toast, { handleApiError } from '@/utils/message'
 import { ElMessageBox } from 'element-plus'
 
 const { t } = i18n.global
@@ -34,10 +34,10 @@ export function useApp() {
         listData.value = data.data.content
         total.value = data.data.count
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }
@@ -70,14 +70,14 @@ export function useApp() {
     try {
       const { data } = await appCreate(body)
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       submitting.value = false
@@ -89,14 +89,14 @@ export function useApp() {
     try {
       const { data } = await appUpdate(id, body)
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       submitting.value = false
@@ -116,16 +116,16 @@ export function useApp() {
     try {
       const { data } = await appDelete(row.id)
       if (data.status) {
-        message.success()
+        toast.success()
         if (listData.value.length === 1 && params.page! > 1) {
           params.page!--
         }
         await query()
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }
@@ -136,14 +136,14 @@ export function useApp() {
     try {
       const { data } = await appUpdateStatus(id, { status })
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       loading.value = false

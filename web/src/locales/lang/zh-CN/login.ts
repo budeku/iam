@@ -7,4 +7,5 @@ export default {
   submitting: '登录中...',
   usernameRequired: '请输入用户名和密码',
   invalidCredentials: '用户名或密码错误',
+  usernameInvalid: '用户名只能包含数字、字母、下划线',
 }

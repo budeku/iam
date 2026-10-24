@@ -39,7 +39,7 @@ function show(type: MessageType, msg: string, options?: MessageConfig): MessageH
 
 const { t } = i18n.global
 
-export const message = {
+export const toast = {
   success(msg?: string, options?: MessageConfig) {
     return show('success', msg || t('common.operationSuccess'), options)
   },
@@ -61,33 +61,33 @@ export const message = {
   },
 }
 
-export function reportError(error: unknown, fallbackMsg?: string) {
+export function handleApiError(error: unknown, fallbackMsg?: string) {
   if (isAxiosError<ApiResponse>(error)) {
     if (error.code === 'ERR_CANCELED') {
       return
     }
 
     if (!error.response) {
-      message.networkError()
+      toast.networkError()
       return
     }
 
     const backendMsg = error.response.data?.message
     if (backendMsg) {
-      message.error(backendMsg)
+      toast.error(backendMsg)
       return
     }
 
-    message.error(fallbackMsg || t('common.operationFailed'))
+    toast.error(fallbackMsg || t('common.operationFailed'))
     return
   }
 
   if (error instanceof Error) {
-    message.error(fallbackMsg || error.message)
+    toast.error(fallbackMsg || error.message)
     return
   }
 
-  message.error(fallbackMsg || t('common.operationFailed'))
+  toast.error(fallbackMsg || t('common.operationFailed'))
 }
 
-export default message
+export default toast

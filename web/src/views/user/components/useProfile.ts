@@ -6,7 +6,7 @@ import {
   type UserSessionItemResp,
 } from '@/api/modules/user'
 import { i18n } from '@/locales'
-import message from '@/utils/message'
+import toast, { handleApiError } from '@/utils/message'
 import { ElMessageBox } from 'element-plus'
 
 const { t } = i18n.global
@@ -22,10 +22,10 @@ export function useProfile() {
       if (data.status) {
         userInfo.value = data.data
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     }
   }
 
@@ -36,10 +36,10 @@ export function useProfile() {
       if (data.status) {
         sessionList.value = data.data
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }
@@ -58,13 +58,13 @@ export function useProfile() {
     try {
       const { data } = await userSessionRevoke(row.id)
       if (data.status) {
-        message.success(t('user.profile.revokeSuccess'))
+        toast.success(t('user.profile.revokeSuccess'))
         await fetchSessions()
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }

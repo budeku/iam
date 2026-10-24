@@ -13,7 +13,7 @@ import {
 } from '@/api/modules/keypair'
 import type { StatusOption } from '@/api/modules/response'
 import { i18n } from '@/locales'
-import message from '@/utils/message'
+import toast, { handleApiError } from '@/utils/message'
 import { ElMessageBox } from 'element-plus'
 
 const { t } = i18n.global
@@ -45,7 +45,7 @@ export function useKeypair() {
       if (appRes.data.status) appOptionData.value = appRes.data.data
       optionsLoaded.value = true
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     }
   }
 
@@ -62,10 +62,10 @@ export function useKeypair() {
         listData.value = data.data.content
         total.value = data.data.count
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }
@@ -88,10 +88,10 @@ export function useKeypair() {
       if (data.status) {
         return data.data
       }
-      message.error(data.message)
+      toast.error(data.message)
       return null
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return null
     }
   }
@@ -101,14 +101,14 @@ export function useKeypair() {
     try {
       const { data } = await keypairCreate(body)
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       submitting.value = false
@@ -128,14 +128,14 @@ export function useKeypair() {
     try {
       const { data } = await keypairDowngrade(id)
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       loading.value = false
@@ -155,14 +155,14 @@ export function useKeypair() {
     try {
       const { data } = await keypairRetire(id)
       if (data.status) {
-        message.success()
+        toast.success()
         await query()
         return true
       }
-      message.error(data.message)
+      toast.error(data.message)
       return false
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
       return false
     } finally {
       loading.value = false
@@ -175,10 +175,10 @@ export function useKeypair() {
       if (data.status) {
         statusData.value = data.data
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }
@@ -190,10 +190,10 @@ export function useKeypair() {
       if (data.status) {
         algorithmData.value = data.data
       } else {
-        message.error(data.message)
+        toast.error(data.message)
       }
     } catch (error) {
-      reportError(error)
+      handleApiError(error)
     } finally {
       loading.value = false
     }

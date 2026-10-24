@@ -5,7 +5,8 @@ import {
   type UserListItemResp,
   type UserUpdateReq,
 } from '@/api/modules/user'
-import message from '@/utils/message'
+import toast, { handleApiError } from '@/utils/message'
+import { REGEX_ALPHANUMERIC_UNDERSCORE, REGEX_EMAIL } from '@/utils/validate'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
@@ -52,10 +53,10 @@ watch(
           form.status = data.data.status
           form.password = ''
         } else {
-          message.error(data.message)
+          toast.error(data.message)
         }
       } catch (error) {
-        reportError(error)
+        handleApiError(error)
       }
     } else {
       resetForm()
@@ -76,15 +77,52 @@ watch(visible, val => {
 })
 
 const rules = computed<FormRules>(() => ({
-  username: [{ required: true, message: t('user.form.usernameRequired'), trigger: 'blur' }],
+  username: [
+    { required: true, message: t('user.form.usernameRequired'), trigger: 'blur' },
+    { min: 1, max: 32, message: t('user.form.usernameLength'), trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value && !REGEX_ALPHANUMERIC_UNDERSCORE.test(value)) {
+          callback(new Error(t('user.form.usernameInvalid')))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
   email: [
     { required: true, message: t('user.form.emailRequired'), trigger: 'blur' },
-    { type: 'email', message: t('user.form.emailInvalid'), trigger: ['blur', 'change'] },
+    { min: 6, max: 128, message: t('user.form.emailLength'), trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value && !REGEX_EMAIL.test(value)) {
+          callback(new Error(t('user.form.emailInvalid')))
+        } else {
+          callback()
+        }
+      },
+      trigger: ['blur', 'change'],
+    },
   ],
   password: [
     {
       required: props.mode === 'create',
       message: t('user.form.passwordRequired'),
+      trigger: 'blur',
+    },
+    {
+      validator: (_rule, value, callback) => {
+        if (props.mode === 'edit' && !value) {
+          callback()
+          return
+        }
+        if (value && (value.length < 6 || value.length > 18)) {
+          callback(new Error(t('user.form.passwordLength')))
+        } else {
+          callback()
+        }
+      },
       trigger: 'blur',
     },
   ],

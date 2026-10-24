@@ -4,6 +4,7 @@ import { SUPPORTED_LOCALES, type SupportedLocale } from '@/locales'
 import { useLocaleStore } from '@/stores/locale'
 import { useThemeStore } from '@/stores/theme'
 import { useI18n } from 'vue-i18n'
+import { REGEX_ALPHANUMERIC_UNDERSCORE } from '@/utils/validate'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,6 +25,11 @@ const errorMsg = ref('')
 async function handleSubmit() {
   if (!form.username || !form.password) {
     errorMsg.value = t('login.usernameRequired')
+    return
+  }
+
+  if (!REGEX_ALPHANUMERIC_UNDERSCORE.test(form.username)) {
+    errorMsg.value = t('login.usernameInvalid')
     return
   }
 

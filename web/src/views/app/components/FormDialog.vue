@@ -5,7 +5,7 @@ import {
   type AppListItemResp,
   type AppUpdateReq,
 } from '@/api/modules/app'
-import { message, reportError } from '@/utils/message'
+import { toast, handleApiError } from '@/utils/message'
 import type { FormInstance, FormRules } from 'element-plus'
 import { reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -50,12 +50,12 @@ watch(
           form.redirect_uris = Array.isArray(data.data.redirect_uris)
             ? data.data.redirect_uris.join('\n')
             : data.data.redirect_uris || ''
-          form.status = data.data.status // 把接口返回的布尔值赋值给表单
+          form.status = data.data.status
         } else {
-          message.error(data.message)
+          toast.error(data.message)
         }
       } catch (error) {
-        reportError(error)
+        handleApiError(error)
       }
     }
   },
