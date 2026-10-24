@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useProfile } from './components/useProfile'
 import type { UserSessionItemResp } from '@/api/modules/user'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 
 const { t } = useI18n()
 const { loading, userInfo, sessionList, revokeSession, init } = useProfile()
@@ -18,7 +19,6 @@ onMounted(() => {
 
 <template>
   <div class="profile-container" v-loading="loading">
-    <!-- 1. 基本信息卡片 -->
     <el-card class="box-card mb-4" shadow="hover">
       <template #header>
         <div class="card-header">
@@ -45,36 +45,22 @@ onMounted(() => {
       </el-descriptions>
     </el-card>
 
-    <!-- 2. 会话与设备管理卡片 -->
     <el-card class="box-card" shadow="hover">
       <template #header>
         <div class="card-header flex justify-between items-center">
           <span>{{ t('user.profile.sessionManagement') }}</span>
-          <el-button size="small" @click="init">{{ t('user.profile.refresh') }}</el-button>
+          <el-button size="default" @click="init">{{ t('user.profile.refresh') }}</el-button>
         </div>
       </template>
 
-      <el-table :data="sessionList" style="width: 100%" border stripe>
-        <!-- 展开行查看内部关联的 RefreshToken -->
-        <el-table-column type="expand">
-          <template #default="{ row }">
-            <div class="p-4 bg-gray-50">
-              <p class="font-bold text-sm mb-2 text-gray-600">
-                {{ t('user.profile.expandRefreshTokens') }}
-              </p>
-              <el-table :data="row.refresh_tokens" size="small" border>
-                <el-table-column prop="id" :label="t('user.profile.tokenId')" width="90" />
-                <el-table-column prop="jti" :label="t('user.profile.jti')" />
-                <el-table-column
-                  prop="expires_at"
-                  :label="t('user.profile.expiresAt')"
-                  width="180"
-                />
-              </el-table>
-            </div>
-          </template>
-        </el-table-column>
-
+      <el-table
+        :data="sessionList"
+        style="width: 100%"
+        border
+        stripe
+        :header-cell-style="{ textAlign: 'center' }"
+        :cell-style="{ textAlign: 'center' }"
+      >
         <el-table-column prop="app_name" :label="t('user.profile.appName')" width="150">
           <template #default="{ row }">
             <el-tag type="info" effect="plain">{{ row.app_name }}</el-tag>
@@ -95,11 +81,11 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <el-table-column
-          prop="last_active_at"
-          :label="t('user.profile.lastActiveAt')"
-          width="170"
-        />
+        <el-table-column :label="t('user.profile.lastActiveAt')" min-width="100">
+          <template #default="scope">
+            {{ formatDate(scope.row.last_active_at) }}
+          </template>
+        </el-table-column>
 
         <el-table-column :label="t('user.profile.status')" width="110" align="center">
           <template #default="{ row }">
@@ -110,7 +96,6 @@ onMounted(() => {
           </template>
         </el-table-column>
 
-        <!-- 操作列 -->
         <el-table-column
           :label="t('user.profile.operation')"
           width="100"
@@ -139,6 +124,12 @@ onMounted(() => {
   padding: 20px;
   .mb-4 {
     margin-bottom: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 </style>
