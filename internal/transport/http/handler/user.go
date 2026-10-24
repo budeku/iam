@@ -249,3 +249,62 @@ func (h *UserHandler) Delete(c *gin.Context) {
 
 	response.OK(c)
 }
+
+func (h *UserHandler) Session(c *gin.Context) {
+	userUUID, ok := middleware.UserUUIDFromContext(c)
+	if !ok {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+	currentSessionID, _ := middleware.SessionIDFromContext(c)
+
+	ctx := c.Request.Context()
+
+	u, err := h.userBiz.GetByUUID(ctx, userUUID)
+	if err != nil {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	res, err := h.userBiz.Session(ctx, u.ID, currentSessionID)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.Success(c, res)
+}
+
+type UserRevokedSessionPathParams struct {
+	SessionID int `uri:"id" binding:"required"`
+}
+
+func (h *UserHandler) RevokeSession(c *gin.Context) {
+	var params UserRevokedSessionPathParams
+	if err := c.ShouldBindUri(&params); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	userUUID, ok := middleware.UserUUIDFromContext(c)
+	if !ok {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	u, err := h.userBiz.GetByUUID(ctx, userUUID)
+	if err != nil {
+		response.Err(c, code.Unauthorized)
+		return
+	}
+
+	err = h.userBiz.RevokeSession(ctx, u.ID, params.SessionID)
+	if err != nil {
+		response.BadRequest(c)
+		return
+	}
+
+	response.OK(c)
+}

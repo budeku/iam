@@ -44,6 +44,7 @@ type SessionGetResp struct {
 
 type SessionStore interface {
 	Get(ctx context.Context, id int) (*SessionGetResp, error)
+	GetUserSessions(ctx context.Context, userID int, currentSessionID uuid.UUID) ([]UserSessionResp, error)
 
 	Create(ctx context.Context, body SessionCreateCommand) (*SessionCreateResp, error)
 

@@ -2,7 +2,10 @@ package store
 
 import (
 	"budeku/iam/internal/biz"
+	"budeku/iam/internal/conf"
 	"budeku/iam/internal/infra/ent/db"
+
+	"github.com/google/uuid"
 )
 
 func toUserGet(info *db.User) *biz.UserGetResp {
@@ -47,6 +50,53 @@ func toUserList(list []*db.User) []biz.UserListItemResp {
 			Status:       v.Status,
 			LastLoginAt:  v.LastLoginAt,
 			IsSuperAdmin: v.IsSuperAdmin,
+		}
+
+		res = append(res, item)
+	}
+
+	return res
+}
+
+func toUserSessions(list []*db.Session, currentSessionID uuid.UUID, appNameMap map[int]string) []biz.UserSessionResp {
+	if len(list) == 0 {
+		return nil
+	}
+
+	res := make([]biz.UserSessionResp, 0, len(list))
+	for _, v := range list {
+		var appName string
+		if name, ok := appNameMap[v.AppID]; ok {
+			appName = name
+		} else if v.AppID == conf.IAMAppID {
+			appName = conf.IAMAppName
+		}
+
+		item := biz.UserSessionResp{
+			ID:              v.ID,
+			Identity:        v.Identity,
+			AppID:           v.AppID,
+			AppName:         appName,
+			IP:              v.IP,
+			UserAgent:       v.UserAgent,
+			AuthMethod:      v.AuthMethod,
+			AuthenticatedAt: v.AuthenticatedAt,
+			LastActiveAt:    v.LastActiveAt,
+			ExpiresAt:       v.ExpiresAt,
+			IsCurrent:       v.Identity == currentSessionID,
+		}
+
+		if tokens, err := v.Edges.RefreshTokensOrErr(); err == nil && len(tokens) > 0 {
+			item.RefreshTokens = make([]biz.UserSessionRefreshTokenResp, len(tokens))
+			for i, t := range tokens {
+				item.RefreshTokens[i] = biz.UserSessionRefreshTokenResp{
+					ID:        t.ID,
+					Jti:       t.Jti,
+					ExpiresAt: t.ExpiresAt,
+				}
+			}
+		} else {
+			item.RefreshTokens = []biz.UserSessionRefreshTokenResp{}
 		}
 
 		res = append(res, item)

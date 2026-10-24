@@ -1,5 +1,6 @@
 package conf
 
 const (
-	IAMAppID = 0
+	IAMAppID   = 0
+	IAMAppName = "IAM"
 )

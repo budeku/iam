@@ -3,6 +3,7 @@ package store
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/infra/ent/db"
+	"budeku/iam/internal/infra/ent/db/app"
 	"budeku/iam/internal/infra/ent/db/refreshtoken"
 	"budeku/iam/internal/infra/ent/db/session"
 	"budeku/iam/internal/infra/ent/db/user"
@@ -51,6 +52,58 @@ func (s *SessionStore) GetActiveSessionsByUser(ctx context.Context, userID int, 
 			session.HasUserWith(user.StatusEQ(true)),
 		).
 		All(ctx)
+}
+
+func (s *SessionStore) GetUserSessions(ctx context.Context, userID int, currentSessionID uuid.UUID) ([]biz.UserSessionResp, error) {
+	list, err := s.client.Session.Query().
+		Where(
+			session.UserID(userID),
+			session.RevokedAtIsNil(),
+			session.ExpiresAtGT(time.Now()),
+		).
+		WithRefreshTokens(func(query *db.RefreshTokenQuery) {
+			query.Where(
+				refreshtoken.RevokedAtIsNil(),
+				refreshtoken.ExpiresAtGT(time.Now()),
+			)
+		}).
+		All(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(list) == 0 {
+		return []biz.UserSessionResp{}, nil
+	}
+
+	appIDMap := make(map[int]struct{})
+	for _, s := range list {
+		if s.AppID > 0 {
+			appIDMap[s.AppID] = struct{}{}
+		}
+	}
+
+	var appIDs []int
+	for id := range appIDMap {
+		appIDs = append(appIDs, id)
+	}
+
+	appNameMap := make(map[int]string)
+	if len(appIDs) > 0 {
+		apps, err := s.client.App.Query().
+			Where(app.IDIn(appIDs...)).
+			Select(app.FieldID, app.FieldName).
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range apps {
+			appNameMap[a.ID] = a.Name
+		}
+	}
+
+	return toUserSessions(list, currentSessionID, appNameMap), nil
 }
 
 func (s *SessionStore) Create(ctx context.Context, body biz.SessionCreateCommand) (*biz.SessionCreateResp, error) {

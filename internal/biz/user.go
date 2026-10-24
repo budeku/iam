@@ -49,6 +49,27 @@ type UserCreateResp struct {
 	ID int `json:"id"`
 }
 
+type UserSessionResp struct {
+	ID              int                           `json:"id"`
+	Identity        uuid.UUID                     `json:"identity"`
+	AppID           int                           `json:"app_id"`
+	AppName         string                        `json:"app_name"`
+	IP              string                        `json:"ip"`
+	UserAgent       string                        `json:"user_agent"`
+	AuthMethod      enum.SessionAuthMethod        `json:"auth_method"`
+	AuthenticatedAt time.Time                     `json:"authenticated_at"`
+	LastActiveAt    time.Time                     `json:"last_active_at"`
+	ExpiresAt       time.Time                     `json:"expires_at"`
+	RefreshTokens   []UserSessionRefreshTokenResp `json:"refresh_tokens"`
+	IsCurrent       bool                          `json:"is_current"`
+}
+
+type UserSessionRefreshTokenResp struct {
+	ID        int       `json:"id"`
+	Jti       uuid.UUID `json:"jti"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type UserStore interface {
 	List(ctx context.Context, keyword string, page, perPage int) ([]UserListItemResp, int, error)
 
@@ -581,4 +602,50 @@ func (b *UserBiz) revokeUserSessionsAndTokens(userID int) {
 			logger.Error("清理用户(ID: %d)关联的 Redis 凭证失败: %v", userID, err)
 		}
 	}
+}
+
+func (b *UserBiz) Session(ctx context.Context, id int, currentSessionID uuid.UUID) ([]UserSessionResp, error) {
+	return b.sessionStore.GetUserSessions(ctx, id, currentSessionID)
+}
+
+func (b *UserBiz) RevokeSession(ctx context.Context, currentUserID int, sessionID int) error {
+	sessionInfo, err := b.sessionStore.Get(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return errors.New("会话不存在")
+		}
+		return err
+	}
+
+	if sessionInfo.UserID != currentUserID {
+		return errors.New("无权操作该会话")
+	}
+
+	// 如果会话已经被吊销了，直接返回成功
+	if sessionInfo.RevokedAt != nil {
+		return nil
+	}
+
+	sessionIdentity := sessionInfo.Identity
+
+	err = b.tx.WithTx(ctx, func(txCtx context.Context) error {
+		if err := b.sessionStore.RevokedByID(txCtx, sessionID); err != nil {
+			return err
+		}
+		if err := b.refreshTokenStore.RevokedBySessionID(txCtx, sessionID); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		logger.Error("下线会话数据库操作失败 (SessionID: %d): %v", sessionID, err)
+		return errors.New("下线会话失败")
+	}
+
+	if err := b.authToken.DelAll(ctx, sessionIdentity); err != nil {
+		logger.Error("清理 Redis 令牌缓存失败 (Identity: %s): %v", sessionIdentity, err)
+	}
+
+	return nil
 }
