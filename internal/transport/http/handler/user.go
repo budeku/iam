@@ -153,7 +153,6 @@ func (h *UserHandler) Info(c *gin.Context) {
 type UserCreateReq struct {
 	Username string `json:"username" binding:"required,max=32"`
 	Email    string `json:"email" binding:"required,email"`
-	Status   bool   `json:"status"`
 	Password string `json:"password" binding:"required,min=6,max=18"`
 }
 
@@ -169,7 +168,6 @@ func (h *UserHandler) Create(c *gin.Context) {
 		body.Username,
 		body.Email,
 		body.Password,
-		body.Status,
 	)
 	if err != nil {
 		response.BadRequest(c)

@@ -430,7 +430,7 @@ func (b *UserBiz) Info(ctx context.Context, id int) (*UserInfoResp, error) {
 	}, nil
 }
 
-func (b *UserBiz) Create(ctx context.Context, username, email string, passwordStr string, status bool) (*UserCreateResp, error) {
+func (b *UserBiz) Create(ctx context.Context, username, email string, passwordStr string) (*UserCreateResp, error) {
 	exist, err := b.store.Duplicate(ctx, username, email)
 	if err != nil {
 		return nil, err
@@ -444,7 +444,7 @@ func (b *UserBiz) Create(ctx context.Context, username, email string, passwordSt
 		return nil, err
 	}
 
-	return b.store.Create(ctx, username, email, passwordHash, uuid.New(), status)
+	return b.store.Create(ctx, username, email, passwordHash, uuid.New(), true)
 }
 
 func (b *UserBiz) Update(ctx context.Context, id int, username, email string, passwordStr string, status bool) error {
