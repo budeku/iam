@@ -4,6 +4,7 @@ import dashboard from './dashboard'
 import keypair from './keypair'
 import layout from './layout'
 import login from './login'
+import user from './user'
 
 export default {
   common,
@@ -12,4 +13,5 @@ export default {
   login,
   app,
   keypair,
+  user,
 }

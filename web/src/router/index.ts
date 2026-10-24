@@ -35,6 +35,12 @@ const router = createRouter({
           meta: { icon: 'key', name: 'keypair' },
         },
         {
+          path: 'users',
+          name: 'users',
+          component: () => import('@/views/user/Index.vue'),
+          meta: { icon: 'user', name: 'user' },
+        },
+        {
           path: 'profile',
           name: 'profile',
           component: () => import('@/views/user/Profile.vue'),

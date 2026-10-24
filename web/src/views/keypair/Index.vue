@@ -74,7 +74,15 @@ query()
         />
 
         <el-table-column :label="t('keypair.field.appName')" prop="app_name" min-width="100" />
-        <el-table-column :label="t('keypair.field.kid')" prop="kid" min-width="200" />
+        <el-table-column :label="t('keypair.field.kid')" prop="kid" min-width="160">
+          <template #default="scope">
+            <el-tooltip :content="scope.row.kid" placement="top" effect="dark">
+              <div class="table-cell-ellipsis">
+                {{ scope.row.kid }}
+              </div>
+            </el-tooltip>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('keypair.field.algorithm')" min-width="100">
           <template #default="scope">
             <el-tag type="primary">{{ toRow(scope.row).algorithm }}</el-tag>
@@ -155,6 +163,13 @@ query()
       display: flex;
       gap: 8px;
     }
+  }
+
+  .table-cell-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
   }
 
   .pagination {

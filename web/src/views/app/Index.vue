@@ -97,7 +97,15 @@ query()
           width="70"
         />
         <el-table-column :label="t('app.field.name')" prop="name" min-width="140" />
-        <el-table-column :label="t('app.field.clientId')" prop="client_id" min-width="160" />
+        <el-table-column :label="t('app.field.clientId')" prop="client_id" min-width="160">
+          <template #default="scope">
+            <el-tooltip :content="scope.row.client_id" placement="top" effect="dark">
+              <div class="table-cell-ellipsis">
+                {{ scope.row.client_id }}
+              </div>
+            </el-tooltip>
+          </template>
+        </el-table-column>
         <el-table-column :label="t('app.field.status')" width="120">
           <template #default="scope">
             <el-switch
@@ -162,6 +170,13 @@ query()
       display: flex;
       gap: 8px;
     }
+  }
+
+  .table-cell-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
   }
 
   .pagination {
