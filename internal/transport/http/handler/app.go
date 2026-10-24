@@ -68,7 +68,6 @@ func (h *AppHandler) Info(c *gin.Context) {
 type AppCreateReq struct {
 	Name         string   `json:"name" binding:"required,max=64"`
 	RedirectUris []string `json:"redirect_uris" binding:"required,min=1,dive,required,url"`
-	Status       bool     `json:"status"`
 }
 
 func (h *AppHandler) Create(c *gin.Context) {
@@ -82,7 +81,6 @@ func (h *AppHandler) Create(c *gin.Context) {
 		c.Request.Context(),
 		body.Name,
 		body.RedirectUris,
-		body.Status,
 	)
 	if err != nil {
 		response.BadRequest(c)

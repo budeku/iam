@@ -87,7 +87,7 @@ func (b *AppBiz) Info(ctx context.Context, id int) (*AppGetResp, error) {
 	return b.store.Get(ctx, id)
 }
 
-func (b *AppBiz) Create(ctx context.Context, name string, redirectUris []string, status bool) (*AppGetResp, error) {
+func (b *AppBiz) Create(ctx context.Context, name string, redirectUris []string) (*AppGetResp, error) {
 	clientID := uuid.New()
 	exist, err := b.store.CreateDuplicate(ctx, name, clientID)
 	if err != nil {
@@ -96,7 +96,7 @@ func (b *AppBiz) Create(ctx context.Context, name string, redirectUris []string,
 	if exist {
 		return nil, ErrAlreadyExists
 	}
-	return b.store.Create(ctx, name, clientID, redirectUris, status)
+	return b.store.Create(ctx, name, clientID, redirectUris, true)
 }
 
 func (b *AppBiz) Update(ctx context.Context, id int, name string, redirectUris []string, status bool) (*AppGetResp, error) {

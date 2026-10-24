@@ -63,7 +63,6 @@ func (h *KeypairHandler) List(c *gin.Context) {
 type KeypaireCreateReq struct {
 	Algorithm enum.KeypairAlgorithm `json:"algorithm" binding:"required"`
 	AppID     int                   `json:"app_id" binding:"required"`
-	Status    enum.KeypairStatus    `json:"status"`
 }
 
 func (h *KeypairHandler) Create(c *gin.Context) {
@@ -73,12 +72,12 @@ func (h *KeypairHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if !body.Algorithm.Valid() || !body.Status.Valid() {
+	if !body.Algorithm.Valid() {
 		response.BadRequest(c)
 		return
 	}
 
-	_, err := h.keypairBiz.Create(c.Request.Context(), body.AppID, body.Algorithm, body.Status)
+	_, err := h.keypairBiz.Create(c.Request.Context(), body.AppID, body.Algorithm)
 	if err != nil {
 		response.BadRequest(c)
 		return

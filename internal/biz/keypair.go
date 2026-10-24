@@ -211,7 +211,7 @@ func (b *KeypairBiz) evictKeypairCaches(ctx context.Context, appID int, kid uuid
 	}
 }
 
-func (b *KeypairBiz) Create(ctx context.Context, appID int, algorithm enum.KeypairAlgorithm, status enum.KeypairStatus) (*KeypairCreateResp, error) {
+func (b *KeypairBiz) Create(ctx context.Context, appID int, algorithm enum.KeypairAlgorithm) (*KeypairCreateResp, error) {
 	appInfo, err := b.appStore.Get(ctx, appID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -259,15 +259,14 @@ func (b *KeypairBiz) Create(ctx context.Context, appID int, algorithm enum.Keypa
 	kid := uuid.New()
 
 	err = b.transactor.WithTx(ctx, func(txCtx context.Context) error {
-		if status == enum.KeypairStatusActive {
-			existingActive, getErr := b.store.GetByAppID(txCtx, appID)
-			if getErr == nil && existingActive != nil {
-				if downgradeErr := b.store.Downgrade(txCtx, existingActive.ID); downgradeErr != nil {
-					return downgradeErr
-				}
-			} else if getErr != nil && !errors.Is(getErr, ErrNotFound) {
-				return getErr
+		status := enum.KeypairStatusActive
+		existingActive, getErr := b.store.GetByAppID(txCtx, appID)
+		if getErr == nil && existingActive != nil {
+			if downgradeErr := b.store.Downgrade(txCtx, existingActive.ID); downgradeErr != nil {
+				return downgradeErr
 			}
+		} else if getErr != nil && !errors.Is(getErr, ErrNotFound) {
+			return getErr
 		}
 
 		resp, createErr := b.store.Create(txCtx, appID, kid, algorithm, status, pubPEM, encryptedPrivBase64)
