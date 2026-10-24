@@ -5,6 +5,7 @@ import (
 	"budeku/iam/internal/bootstrap/data"
 	"budeku/iam/internal/conf"
 	"budeku/iam/internal/infra/database"
+	"budeku/iam/pkg/util"
 	"context"
 	"errors"
 	"flag"
@@ -13,18 +14,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 	"text/tabwriter"
 	"time"
-)
-
-var (
-	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-	emailRegex    = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 )
 
 const daemonFile = "daemon.pid"
@@ -167,23 +162,15 @@ func handleInit(args []string) {
 		log.Fatal("执行 init 时 --username、--email 不可为空")
 	}
 
-	if !usernameRegex.MatchString(*username) {
-		log.Fatal("用户名格式不正确（仅支持字母、数字和下划线）")
+	cleanUsername := strings.TrimSpace(*username)
+	cleanEmail := strings.TrimSpace(*email)
+
+	if !util.IsValidUsername(cleanUsername) {
+		log.Fatal("用户名格式不正确（支持 1-32 位字母、数字和下划线）")
 	}
 
-	cleanUsername := strings.ToLower(strings.TrimSpace(*username))
-	cleanEmail := strings.ToLower(strings.TrimSpace(*email))
-
-	if len(cleanUsername) > 32 {
-		log.Fatal("用户名长度不能超过 32 个字符")
-	}
-
-	if len(cleanEmail) < 6 || len(cleanEmail) > 128 {
-		log.Fatal("邮箱长度必须在 6 到 128 个字符之间")
-	}
-
-	if !emailRegex.MatchString(cleanEmail) {
-		log.Fatal("邮箱格式不正确")
+	if !util.IsValidEmail(cleanEmail) {
+		log.Fatal("邮箱格式不正确或长度超出限制（6-128 字符）")
 	}
 
 	bootstrap.Setup()

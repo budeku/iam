@@ -9,6 +9,7 @@ import (
 	"budeku/iam/internal/transport/http/middleware"
 	"budeku/iam/internal/transport/http/response"
 	"budeku/iam/internal/transport/http/response/code"
+	"budeku/iam/pkg/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +31,11 @@ type LoginReq struct {
 func (h *UserHandler) Login(c *gin.Context) {
 	var body LoginReq
 	if err := c.ShouldBindJSON(&body); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	if !util.IsValidUsername(body.Username) || !util.IsValidPassword(body.Password) {
 		response.InvalidParams(c)
 		return
 	}
@@ -163,6 +169,13 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if !util.IsValidUsername(body.Username) ||
+		!util.IsValidEmail(body.Email) ||
+		!util.IsValidPassword(body.Password) {
+		response.InvalidParams(c)
+		return
+	}
+
 	_, err := h.userBiz.Create(
 		c.Request.Context(),
 		body.Username,
@@ -197,6 +210,16 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 	var body UserUpdateReq
 	if err := c.ShouldBindJSON(&body); err != nil {
+		response.Err(c, code.InvalidParams)
+		return
+	}
+
+	if !util.IsValidUsername(body.Username) || !util.IsValidEmail(body.Email) {
+		response.Err(c, code.InvalidParams)
+		return
+	}
+
+	if body.Password != "" && !util.IsValidPassword(body.Password) {
 		response.Err(c, code.InvalidParams)
 		return
 	}

@@ -3,6 +3,7 @@ package handler
 import (
 	"budeku/iam/internal/biz"
 	"budeku/iam/internal/transport/http/response"
+	"budeku/iam/pkg/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,6 +78,11 @@ func (h *AppHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if !util.IsValidAppName(body.Name) || !util.IsValidIPOrURLList(body.RedirectUris) {
+		response.InvalidParams(c)
+		return
+	}
+
 	_, err := h.appBiz.Create(
 		c.Request.Context(),
 		body.Name,
@@ -109,6 +115,11 @@ func (h *AppHandler) Update(c *gin.Context) {
 
 	var body AppUpdateReq
 	if err := c.ShouldBindJSON(&body); err != nil {
+		response.InvalidParams(c)
+		return
+	}
+
+	if !util.IsValidAppName(body.Name) || !util.IsValidIPOrURLList(body.RedirectUris) {
 		response.InvalidParams(c)
 		return
 	}
