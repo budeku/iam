@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func Auth(jwtManager *jwt.Manager, authToken biz.AuthToken) gin.HandlerFunc {
+func Auth(jwtManager *jwt.Manager, authToken biz.AuthToken, sessionBiz *biz.SessionBiz) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := cookieutil.Cookie().Get(c.Request, consts.CookieAccessToken)
 		if err != nil || accessToken == "" {
@@ -38,6 +38,8 @@ func Auth(jwtManager *jwt.Manager, authToken biz.AuthToken) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		sessionBiz.Touch(c.Request.Context(), claims.SessionID)
 
 		c.Set(consts.CtxUserUUID, claims.UserUUID)
 		c.Set(consts.CtxSessionID, claims.SessionID)

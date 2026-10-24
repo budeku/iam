@@ -140,6 +140,26 @@ func (s *SessionStore) UpdateLastActive(ctx context.Context, id int, t time.Time
 	return nil
 }
 
+func (s *SessionStore) UpdateLastActiveByIdentity(ctx context.Context, identity uuid.UUID, t time.Time) error {
+	_, err := s.Client(ctx).Session.Update().
+		Where(
+			session.IdentityEQ(identity),
+			session.RevokedAtIsNil(),
+			session.ExpiresAtGT(time.Now()),
+		).
+		SetLastActiveAt(t).
+		Save(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return biz.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (s *SessionStore) RevokedByID(ctx context.Context, id int) error {
 	err := s.Client(ctx).Session.UpdateOneID(id).
 		SetRevokedAt(time.Now()).

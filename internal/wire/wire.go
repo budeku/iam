@@ -19,7 +19,8 @@ type App struct {
 	App     *handler.AppHandler
 	Keypair *handler.KeypairHandler
 
-	UserBiz *biz.UserBiz
+	UserBiz    *biz.UserBiz
+	SessionBiz *biz.SessionBiz
 
 	JWTManager *jwt.Manager
 	AuthToken  biz.AuthToken
