@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"budeku/iam/internal/conf"
+	"budeku/iam/internal/consts"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/pkg/cryptoutil"
@@ -38,17 +39,17 @@ func NewBizKeyProvider(keypairStore KeypairStore) *BizKeyProvider {
 	}
 }
 
-func (p *BizKeyProvider) activeKeypairCacheKey(appID int) string {
-	return fmt.Sprintf("keypair:active:%d", appID)
+func activeKeypairCacheKey(appID int) string {
+	return fmt.Sprintf("%s:%d", consts.RedisKeypair, appID)
 }
 
-func (p *BizKeyProvider) publicCertCacheKey(kid uuid.UUID) string {
-	return fmt.Sprintf("keypair:pub:%s", kid.String())
+func publicCertCacheKey(kid uuid.UUID) string {
+	return fmt.Sprintf("%s:%s", consts.RedisKeypairPublicKey, kid.String())
 }
 
 // 私钥签名（Signing）
 func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (uuid.UUID, crypto.Signer, error) {
-	cacheKey := p.activeKeypairCacheKey(appID)
+	cacheKey := activeKeypairCacheKey(appID)
 
 	var kp cachedKeypair
 
@@ -105,7 +106,7 @@ func (p *BizKeyProvider) SigningKey(ctx context.Context, appID int) (uuid.UUID, 
 
 // 公钥验签（Verifying）
 func (p *BizKeyProvider) VerifyKey(ctx context.Context, kid uuid.UUID) (crypto.PublicKey, error) {
-	cacheKey := p.publicCertCacheKey(kid)
+	cacheKey := publicCertCacheKey(kid)
 
 	var pubPEM string
 	pubPEM, err := p.rdb.Get(ctx, cacheKey)

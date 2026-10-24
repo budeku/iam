@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"budeku/iam/internal/consts"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/internal/logger"
@@ -73,7 +74,7 @@ func NewSessionBiz(store SessionStore) *SessionBiz {
 }
 
 func (b *SessionBiz) touchCacheKey(identity uuid.UUID) string {
-	return fmt.Sprintf("session:touch:%s", identity.String())
+	return fmt.Sprintf("%s:%s", consts.RedisSessionTouch, identity.String())
 }
 
 func (b *SessionBiz) Touch(ctx context.Context, identity uuid.UUID) {

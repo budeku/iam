@@ -2,6 +2,7 @@ package biz
 
 import (
 	"budeku/iam/internal/conf"
+	"budeku/iam/internal/consts"
 	"budeku/iam/internal/enum"
 	"budeku/iam/internal/infra/redis"
 	"budeku/iam/internal/jwt"
@@ -85,7 +86,7 @@ func NewKeypairBiz(
 }
 
 func jwksCacheKey(appID int) string {
-	return fmt.Sprintf("keypair:jwks:%d", appID)
+	return fmt.Sprintf("%s:%d", consts.RedisKeypairJWKS, appID)
 }
 
 type cachedPublicKeyItem struct {
@@ -204,10 +205,10 @@ func decryptPrivateKey(encryptedBase64 string) (string, error) {
 
 func (b *KeypairBiz) evictKeypairCaches(ctx context.Context, appID int, kid uuid.UUID) {
 	_ = b.rdb.Del(ctx, jwksCacheKey(appID))
-	_ = b.rdb.Del(ctx, fmt.Sprintf("keypair:active:%d", appID))
+	_ = b.rdb.Del(ctx, activeKeypairCacheKey(appID))
 
 	if kid != uuid.Nil {
-		_ = b.rdb.Del(ctx, fmt.Sprintf("keypair:pub:%s", kid.String()))
+		_ = b.rdb.Del(ctx, publicCertCacheKey(kid))
 	}
 }
 
